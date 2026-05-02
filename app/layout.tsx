@@ -22,10 +22,11 @@ export const metadata: Metadata = {
   description: 'Tienda online de vestuario urbano independiente con estética alternativa, oscura y editorial.',
   icons: {
     icon: [
+      { url: '/PNG/icon-blanco.png', sizes: '192x192', type: 'image/png' },
       { url: '/SVG/icon-blanco.svg', type: 'image/svg+xml' },
-      { url: '/PNG/icon-blanco.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: { url: '/PNG/icon-blanco.png', sizes: '512x512' },
+    apple: { url: '/PNG/icon-blanco.png', sizes: '180x180' },
+    shortcut: '/PNG/icon-blanco.png',
   },
 };
 

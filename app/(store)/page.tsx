@@ -45,7 +45,7 @@ export default async function Home() {
         <div className="relative z-20 flex flex-col lg:flex-row gap-16 items-center justify-between mt-12 w-full">
           
           <div className="flex-1 max-w-2xl pb-4">
-            <h2 className="text-5xl md:text-7xl font-display font-bold text-foreground uppercase tracking-tight mb-6 leading-[0.85] whitespace-pre-line">
+            <h2 className="text-4xl md:text-7xl font-display font-bold text-foreground uppercase tracking-tight mb-6 leading-[0.85] whitespace-pre-line">
               {settings.heroTitle}
             </h2>
             <p className="text-xs md:text-sm text-muted-foreground font-sans tracking-[0.2em] uppercase mb-10 max-w-lg leading-loose">
@@ -62,7 +62,7 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="w-full lg:w-[450px] relative aspect-[3/4] bg-[#111111] group flex items-center justify-center border border-white/5 shadow-2xl">
+          <div className="w-full max-w-[320px] mx-auto lg:max-w-none lg:w-[450px] relative aspect-[3/4] bg-[#111111] group flex items-center justify-center border border-white/5 shadow-2xl">
             {settings.heroImageUrl ? (
               <Image 
                 src={settings.heroImageUrl} 

@@ -8,13 +8,13 @@ export async function Navbar() {
   const session = await auth();
   
   return (
-    <header className="fixed top-0 left-0 w-full flex justify-between items-center z-50 px-6 md:px-12 py-4 bg-black/80 backdrop-blur-md border-b border-white/5">
+    <header className="fixed top-0 left-0 w-full flex justify-between items-center z-50 px-6 md:px-12 py-3 bg-black/80 backdrop-blur-md border-b border-white/5">
       <Link href="/" className="flex items-center">
-        <img src="/SVG/icon-blanco.svg" alt="ANTA" className="h-12 md:h-14 w-auto" />
+        <img src="/SVG/icon-blanco.svg" alt="ANTA" className="h-14 md:h-16 w-auto" />
       </Link>
       
       <div className="flex items-center gap-6 md:gap-12">
-        {/* Desktop Nav */}
+        {/* Desktop Nav — hidden on mobile */}
         <nav className="hidden md:flex gap-10 text-xs uppercase tracking-widest font-mono font-bold text-white/70 items-center">
           <Link href="/shop" className="hover:text-accent transition-colors">Catálogo</Link>
           <Link href="/about" className="hover:text-accent transition-colors">Concepto</Link>
@@ -22,10 +22,13 @@ export async function Navbar() {
           <CartCount />
         </nav>
         
-        <UserNav session={session} />
+        {/* UserNav — hidden on mobile, only visible on desktop */}
+        <div className="hidden md:flex">
+          <UserNav session={session} />
+        </div>
         
-        {/* Mobile Menu */}
-        <MobileMenu />
+        {/* Mobile: only hamburger menu */}
+        <MobileMenu session={session} />
       </div>
     </header>
   );
