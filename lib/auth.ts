@@ -29,8 +29,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     async createUser({ user }) {
-      // Auto-asignar admin si es el correo específico
-      if (user.email === "antaindu.dev@gmail.com") {
+      // Auto-asignar admin si es alguno de los correos autorizados
+      const adminEmails = [
+        "antaindu.dev@gmail.com",
+        "antonia.catalan.34@gmail.com",
+        "contacto.antadj@gmail.com",
+      ];
+      if (user.email && adminEmails.includes(user.email)) {
         const { users } = await import("./schema");
         const { eq } = await import("drizzle-orm");
         await db.update(users).set({ role: 'admin' }).where(eq(users.email, user.email));

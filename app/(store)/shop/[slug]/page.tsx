@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Image as ImageIcon } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
+import { ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { db } from '@/lib/db';
 import { products } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
+import { AddToCartButton } from '@/components/store/AddToCartButton';
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const imgs = product.images as string[];
   const productImages = Array.isArray(imgs) && imgs.length > 0 ? imgs : [null];
+  const mainImage = productImages[0] || null;
 
   return (
     <main className="min-h-screen relative bg-background overflow-hidden pt-24 pb-32">
@@ -75,33 +76,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               </p>
             )}
 
-            {/* Size Selector */}
-            {product.variants.length > 0 && (
-              <div className="mb-12">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Talla</span>
-                </div>
-                <div className="grid grid-cols-4 gap-4">
-                  {product.variants.map((v) => (
-                    <button key={v.id} disabled={v.stock === 0} className={`border py-4 font-mono text-sm transition-colors ${v.stock === 0 ? 'border-white/5 text-zinc-700 cursor-not-allowed' : 'border-white/20 hover:border-accent hover:text-accent'}`}>
-                      {v.size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Add to Cart CTA */}
-            <button className={buttonVariants({ 
-              size: "lg", 
-              className: "w-full bg-accent text-accent-foreground hover:bg-white text-sm py-8 rounded-none font-sans font-bold uppercase tracking-widest transition-all mb-6" 
-            })}>
-              Agregar al Carrito <ArrowRight className="ml-4 w-5 h-5" />
-            </button>
-            
-            <p className="font-mono text-[10px] text-muted-foreground text-center uppercase tracking-widest">
-              Envíos a todo Chile. Despacho en 3-5 días hábiles.
-            </p>
+            <AddToCartButton
+              productId={product.id}
+              name={product.name}
+              price={Number(product.price)}
+              image={mainImage}
+              slug={product.slug}
+              variants={product.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock }))}
+            />
           </div>
         </div>
       </div>
