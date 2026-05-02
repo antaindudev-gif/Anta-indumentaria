@@ -5,7 +5,9 @@ export function Footer() {
     <footer className="bg-black border-t border-white/10 pt-20 pb-10 px-6 md:px-12 relative z-10">
       <div className="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
         <div className="flex flex-col gap-6">
-          <Link href="/" className="font-display font-bold text-4xl tracking-[0.2em] text-white">ANTA</Link>
+          <Link href="/" className="flex items-center">
+            <img src="/SVG/anta-verde.svg" alt="ANTA" className="h-10 w-auto" />
+          </Link>
           <p className="font-sans text-xs text-muted-foreground uppercase tracking-widest leading-loose">
             Estética vanguardista y disruptiva. Vestuario urbano independiente.
           </p>

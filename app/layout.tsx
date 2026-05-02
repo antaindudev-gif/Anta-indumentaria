@@ -21,8 +21,11 @@ export const metadata: Metadata = {
   title: 'Anta Indumentaria | Dark Luxury',
   description: 'Tienda online de vestuario urbano independiente con estética alternativa, oscura y editorial.',
   icons: {
-    icon: '/SVG/icon-negro.svg',
-    apple: '/PNG/icon-negro.png',
+    icon: [
+      { url: '/SVG/icon-blanco.svg', type: 'image/svg+xml' },
+      { url: '/PNG/icon-blanco.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: { url: '/PNG/icon-blanco.png', sizes: '512x512' },
   },
 };
 
