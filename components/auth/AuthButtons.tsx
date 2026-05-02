@@ -4,16 +4,9 @@ import { LogOut, User } from "lucide-react";
 
 export function SignInButton() {
   return (
-    <form
-      action={async () => {
-        "use server";
-        await signIn("google");
-      }}
-    >
-      <button type="submit" className="hover:text-accent transition-colors font-mono uppercase tracking-widest text-xs font-bold">
-        Ingresar
-      </button>
-    </form>
+    <Link href="/login" className="hover:text-accent transition-colors font-mono uppercase tracking-widest text-xs font-bold">
+      Ingresar
+    </Link>
   );
 }
 
