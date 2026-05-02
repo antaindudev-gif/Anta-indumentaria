@@ -15,8 +15,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
-        // Asignar rol desde la base de datos (NextAuth por defecto no inyecta el role extra sin declararlo)
-        // @ts-expect-error - NextAuth types need module augmentation for custom fields
+        // Asignar rol desde la base de datos
         session.user.role = user.role; 
       }
       return session;
