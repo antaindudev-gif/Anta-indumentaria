@@ -1,57 +1,89 @@
-import Link from 'next/link';
+import { db } from "@/lib/db";
+import { products } from "@/lib/schema";
+import { desc } from "drizzle-orm";
+import Link from "next/link";
 
-// MOCK DATA: Esto vendrá de Drizzle ORM
-const mockProducts = [
-  { id: '1', sku: 'ANTA-001', name: 'DECAY HOODIE', price: 45000, stock: 12, status: 'active' },
-  { id: '2', sku: 'ANTA-002', name: 'VOID T-SHIRT', price: 25000, stock: 0, status: 'sold_out' },
-  { id: '3', sku: 'ANTA-003', name: 'ABYSS CARGO', price: 55000, stock: 3, status: 'active' },
-];
+export const dynamic = "force-dynamic"; // Siempre buscar lo más reciente
 
-export default function AdminProductsPage() {
+export default async function AdminProductsPage() {
+  const allProducts = await db.query.products.findMany({
+    orderBy: [desc(products.createdAt)],
+    with: {
+      variants: true
+    }
+  });
+
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-8 max-w-6xl">
       <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-display font-bold uppercase tracking-widest text-white">Productos</h1>
+        <h1 className="text-3xl font-display font-bold uppercase tracking-widest text-white">Gestión de Productos</h1>
         <Link 
           href="/admin/products/new" 
-          className="bg-accent text-black px-6 py-3 font-mono text-xs uppercase tracking-widest font-bold hover:bg-white transition-colors"
+          className="bg-white text-black hover:bg-accent transition-colors font-mono font-bold text-xs uppercase tracking-widest px-6 py-3"
         >
-          + Agregar Producto
+          + Nuevo Producto
         </Link>
       </div>
-      
-      <div className="border border-white/10 bg-[#111111] overflow-hidden">
+
+      <div className="border border-white/10 bg-[#0a0a0a] overflow-hidden">
         <table className="w-full text-left font-mono text-sm">
-          <thead className="bg-white/5 border-b border-white/10">
+          <thead className="bg-[#111111] border-b border-white/10">
             <tr>
-              <th className="p-4 font-normal text-muted-foreground">SKU</th>
-              <th className="p-4 font-normal text-muted-foreground">Nombre</th>
-              <th className="p-4 font-normal text-muted-foreground">Precio</th>
-              <th className="p-4 font-normal text-muted-foreground">Stock</th>
-              <th className="p-4 font-normal text-muted-foreground">Estado</th>
-              <th className="p-4 font-normal text-muted-foreground">Acciones</th>
+              <th className="p-4 text-xs text-muted-foreground uppercase tracking-widest font-normal">Producto</th>
+              <th className="p-4 text-xs text-muted-foreground uppercase tracking-widest font-normal">Estado</th>
+              <th className="p-4 text-xs text-muted-foreground uppercase tracking-widest font-normal">Stock (Variantes)</th>
+              <th className="p-4 text-xs text-muted-foreground uppercase tracking-widest font-normal">Precio</th>
+              <th className="p-4 text-xs text-muted-foreground uppercase tracking-widest font-normal text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody>
-            {mockProducts.map((p) => (
-              <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                <td className="p-4">{p.sku}</td>
-                <td className="p-4">{p.name}</td>
-                <td className="p-4">${p.price.toLocaleString('es-CL')}</td>
-                <td className="p-4">
-                  <span className={p.stock < 5 ? 'text-red-400' : 'text-white'}>{p.stock}</span>
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 text-xs ${p.status === 'active' ? 'bg-accent/20 text-accent' : 'bg-red-500/20 text-red-400'}`}>
-                    {p.status}
-                  </span>
-                </td>
-                <td className="p-4 flex gap-4">
-                  <button className="text-accent hover:text-white transition-colors">Editar</button>
-                  <button className="text-red-400 hover:text-white transition-colors">Borrar</button>
-                </td>
+          <tbody className="divide-y divide-white/5">
+            {allProducts.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-zinc-500 uppercase tracking-widest text-xs">No hay productos creados aún.</td>
               </tr>
-            ))}
+            ) : (
+              allProducts.map((p) => {
+                const totalStock = p.variants.reduce((acc, v) => acc + v.stock, 0);
+                
+                return (
+                  <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-zinc-900 border border-white/10 overflow-hidden">
+                          {p.images && p.images[0] ? (
+                            <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover grayscale opacity-80" />
+                          ) : (
+                            <div className="w-full h-full bg-zinc-800" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-white uppercase">{p.name}</p>
+                          <p className="text-xs text-zinc-500 uppercase tracking-widest">{p.category}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 text-[10px] uppercase tracking-widest border ${
+                        p.status === 'active' ? 'border-accent text-accent' : 
+                        p.status === 'draft' ? 'border-yellow-500 text-yellow-500' : 
+                        'border-red-500 text-red-500'
+                      }`}>
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={totalStock === 0 ? "text-red-500" : "text-white"}>{totalStock}</span> uni.
+                    </td>
+                    <td className="p-4">${Number(p.price).toLocaleString('es-CL')}</td>
+                    <td className="p-4 text-right">
+                      <Link href={`/admin/products/${p.id}/edit`} className="text-zinc-400 hover:text-white transition-colors text-xs uppercase tracking-widest">
+                        Editar
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

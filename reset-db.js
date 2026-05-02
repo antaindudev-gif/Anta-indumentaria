@@ -1,5 +1,7 @@
 import { createPool } from '@vercel/postgres';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 async function main() {
   const pool = createPool({ connectionString: process.env.POSTGRES_URL });
