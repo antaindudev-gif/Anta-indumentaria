@@ -161,3 +161,17 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
     references: [products.id],
   }),
 }));
+
+// --- CONFIGURACIÓN DE LA TIENDA (HOME) ---
+export const storeSettings = pgTable('store_settings', {
+  id: text('id').primaryKey(), // Siempre será "default"
+  heroTitle: text('hero_title').notNull().default("Rompe las reglas.\nHaz tu propio\ncamino."),
+  heroDescription: text('hero_description').notNull().default("Estética vanguardista y disruptiva. Calidad sin límites. Vestuario urbano independiente para un mundo onírico."),
+  heroCtaText: text('hero_cta_text').notNull().default("Ver Colección"),
+  heroCtaLink: text('hero_cta_link').notNull().default("/shop"),
+  heroImageUrl: text('hero_image_url'),
+  manifestoTitle: text('manifesto_title').notNull().default("Disruptive\nFluid"),
+  manifestoDescription: text('manifesto_description').notNull().default("En ANTA, creemos que la indumentaria es más que simples prendas; es una declaración de identidad, pensamiento y un vehículo de expresión profundo con el entorno."),
+  galleryImage1: text('gallery_image_1'),
+  galleryImage2: text('gallery_image_2'),
+});

@@ -3,21 +3,29 @@ import { ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import Image from 'next/image';
 
-// MOCK DATA: Esto luego vendrá de Drizzle ORM (ej. await db.query.homeContent.findFirst())
-const dbHeroContent = {
-  title: "Rompe las reglas.\nHaz tu propio\ncamino.",
-  description: "Estética vanguardista y disruptiva. Calidad sin límites. Vestuario urbano independiente para un mundo onírico.",
-  ctaText: "Ver Colección",
-  ctaLink: "/shop",
-  heroImage: null, // Si es null, mostrará recuadro vacío
-};
+import { db } from '@/lib/db';
 
-const dbConceptImages = [
-  { id: 1, url: null },
-  { id: 2, url: null },
-];
+export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function Home() {
+  const settingsArray = await db.query.storeSettings.findMany();
+  const settings = settingsArray[0] || {
+    heroTitle: "Rompe las reglas.\nHaz tu propio\ncamino.",
+    heroDescription: "Estética vanguardista y disruptiva. Calidad sin límites. Vestuario urbano independiente para un mundo onírico.",
+    heroCtaText: "Ver Colección",
+    heroCtaLink: "/shop",
+    heroImageUrl: null,
+    manifestoTitle: "Disruptive\nFluid",
+    manifestoDescription: "En ANTA, creemos que la indumentaria es más que simples prendas; es una declaración de identidad, pensamiento y un vehículo de expresión profundo con el entorno.",
+    galleryImage1: null,
+    galleryImage2: null,
+  };
+
+  const dbConceptImages = [
+    { id: 1, url: settings.galleryImage1 },
+    { id: 2, url: settings.galleryImage2 },
+  ];
+
   return (
     <main className="flex flex-col min-h-screen relative bg-background overflow-hidden">
       {/* Noise Overlay */}
@@ -38,26 +46,26 @@ export default function Home() {
           
           <div className="flex-1 max-w-2xl pb-4">
             <h2 className="text-5xl md:text-7xl font-display font-bold text-foreground uppercase tracking-tight mb-6 leading-[0.85] whitespace-pre-line">
-              {dbHeroContent.title}
+              {settings.heroTitle}
             </h2>
             <p className="text-xs md:text-sm text-muted-foreground font-sans tracking-[0.2em] uppercase mb-10 max-w-lg leading-loose">
-              {dbHeroContent.description}
+              {settings.heroDescription}
             </p>
             <Link 
-              href={dbHeroContent.ctaLink}
+              href={settings.heroCtaLink}
               className={buttonVariants({ 
                 size: "lg", 
                 className: "bg-accent text-black hover:bg-white text-sm px-10 py-7 rounded-none font-sans font-bold uppercase tracking-widest transition-all w-fit mt-4" 
               })}
             >
-              {dbHeroContent.ctaText} <ArrowRight className="ml-4 w-5 h-5" />
+              {settings.heroCtaText} <ArrowRight className="ml-4 w-5 h-5" />
             </Link>
           </div>
 
           <div className="w-full lg:w-[450px] relative aspect-[3/4] bg-[#111111] group flex items-center justify-center border border-white/5 shadow-2xl">
-            {dbHeroContent.heroImage ? (
+            {settings.heroImageUrl ? (
               <Image 
-                src={dbHeroContent.heroImage} 
+                src={settings.heroImageUrl} 
                 alt="Anta Hero" 
                 fill
                 className="object-cover grayscale"
@@ -100,11 +108,11 @@ export default function Home() {
             ))}
           </div>
           <div className="flex-1">
-            <h3 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-wider mb-8 text-foreground leading-none">
-              Disruptive<br/>Fluid
+            <h3 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-wider mb-8 text-foreground leading-none whitespace-pre-line">
+              {settings.manifestoTitle}
             </h3>
             <p className="font-sans text-muted-foreground text-xs md:text-sm uppercase tracking-[0.2em] leading-loose max-w-md mb-8">
-              En ANTA, creemos que la indumentaria es más que simples prendas; es una declaración de identidad, pensamiento y un vehículo de expresión profundo con el entorno.
+              {settings.manifestoDescription}
             </p>
             <Link href="/about" className="text-accent hover:text-white transition-colors uppercase tracking-widest text-xs font-bold flex items-center group">
               Brand Manifesto <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
