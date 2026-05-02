@@ -1,10 +1,18 @@
 import Link from 'next/link';
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+  
+  if (!session?.user || session.user.role !== 'admin') {
+    redirect('/');
+  }
+
   return (
     <div className="min-h-screen bg-black text-white flex">
       {/* Sidebar Admin */}

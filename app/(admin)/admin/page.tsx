@@ -1,28 +1,29 @@
-// MOCK DATA: Esto vendrá de Drizzle ORM (estadísticas básicas)
-export default function AdminDashboardPage() {
+import { Suspense } from "react";
+import { db } from "@/lib/db";
+
+export default async function AdminDashboard() {
+  const productsCount = await db.query.products.findMany().then(res => res.length);
+  const usersCount = await db.query.users.findMany().then(res => res.length);
+
   return (
-    <div className="flex flex-col gap-12">
-      <h1 className="text-4xl font-display font-bold uppercase tracking-widest text-white">Dashboard</h1>
+    <div className="flex flex-col gap-12 max-w-4xl">
+      <h1 className="text-4xl font-display font-bold uppercase tracking-widest text-white">Panel General</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {[
-          { title: 'Ventas Mensuales', value: '$1.2M', info: '+12% este mes' },
-          { title: 'Órdenes Nuevas', value: '45', info: 'Pendientes de envío' },
-          { title: 'Productos Activos', value: '18', info: 'Catálogo' },
-          { title: 'Bajo Stock', value: '3', info: 'Variantes con < 5' }
-        ].map((stat, i) => (
-          <div key={i} className="p-6 border border-white/10 bg-[#111111]">
-            <h3 className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-2">{stat.title}</h3>
-            <p className="text-4xl font-display font-bold text-accent mb-2">{stat.value}</p>
-            <p className="font-sans text-xs text-white/50">{stat.info}</p>
-          </div>
-        ))}
-      </div>
-      
-      <div className="p-6 border border-white/10 bg-[#111111] h-[400px] flex items-center justify-center">
-        <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
-          Gráfico de Ventas (Aquí se integrará una librería de charts)
-        </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="border border-white/10 bg-[#111111] p-8 flex flex-col gap-4">
+          <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-widest">Total Productos</h2>
+          <p className="font-display text-4xl text-white">{productsCount}</p>
+        </div>
+        
+        <div className="border border-white/10 bg-[#111111] p-8 flex flex-col gap-4">
+          <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-widest">Total Usuarios</h2>
+          <p className="font-display text-4xl text-white">{usersCount}</p>
+        </div>
+        
+        <div className="border border-white/10 bg-[#111111] p-8 flex flex-col gap-4">
+          <h2 className="font-mono text-muted-foreground text-xs uppercase tracking-widest">Órdenes Pendientes</h2>
+          <p className="font-display text-4xl text-accent">0</p>
+        </div>
       </div>
     </div>
   );
