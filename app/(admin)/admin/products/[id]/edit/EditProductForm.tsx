@@ -1,20 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Plus, X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Image as ImageIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { createProduct } from '@/app/actions/products';
+import { updateProduct, deleteProduct } from '@/app/actions/products';
 
-export default function NewProductPage() {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [compareAtPrice, setCompareAtPrice] = useState('');
-  const [category, setCategory] = useState('tops');
-  const [sizes, setSizes] = useState('S, M, L, XL');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+export function EditProductForm({ product }: { product: any }) {
+  const images = (product.images as string[]) || [];
+  const [name, setName] = useState(product.name);
+  const [description, setDescription] = useState(product.description || '');
+  const [price, setPrice] = useState(String(product.price));
+  const [compareAtPrice, setCompareAtPrice] = useState(product.compareAtPrice ? String(product.compareAtPrice) : '');
+  const [category, setCategory] = useState(product.category);
+  const [status, setStatus] = useState(product.status);
+  const [imagePreview, setImagePreview] = useState<string | null>(images[0] || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,43 +32,44 @@ export default function NewProductPage() {
           <Link href="/admin/products" className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2 font-mono text-xs uppercase tracking-widest w-fit">
             <ArrowLeft className="w-4 h-4" /> Volver a Productos
           </Link>
-          <h1 className="text-3xl font-display font-bold uppercase tracking-widest text-white">Añadir Producto</h1>
+          <h1 className="text-3xl font-display font-bold uppercase tracking-widest text-white">Editar Producto</h1>
         </div>
         
         <form
           action={async (formData) => {
             setIsSubmitting(true);
-            await createProduct(formData);
+            await updateProduct(formData);
             setIsSubmitting(false);
           }}
-          className="flex flex-col gap-8 pb-24"
+          className="flex flex-col gap-8 pb-12"
         >
+          <input type="hidden" name="productId" value={product.id} />
+
           {/* Image Upload */}
           <div className="border border-white/10 bg-[#0a0a0a] p-6 flex flex-col gap-4">
-            <h2 className="font-mono text-accent text-xs uppercase tracking-widest">Fotografía (1 Principal)</h2>
+            <h2 className="font-mono text-accent text-xs uppercase tracking-widest">Fotografía</h2>
             <label className="border border-dashed border-white/20 bg-black hover:border-accent hover:bg-accent/5 transition-all p-8 flex flex-col items-center justify-center gap-3 cursor-pointer">
               <Upload className="w-6 h-6 text-muted-foreground" />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Seleccionar Archivo</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cambiar Imagen (se comprime a WEBP)</span>
               <input name="imageFile" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
             </label>
-            {imagePreview && <p className="text-[10px] text-accent font-mono uppercase">Archivo cargado exitosamente.</p>}
           </div>
 
           {/* Name */}
           <div className="flex flex-col gap-2">
             <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Nombre</label>
-            <input name="name" value={name} onChange={(e) => setName(e.target.value)} type="text" placeholder="Ej: DECAY HOODIE" className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" required />
+            <input name="name" value={name} onChange={(e) => setName(e.target.value)} type="text" className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" required />
           </div>
 
-          {/* Price & Stock */}
+          {/* Price */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Precio (CLP)</label>
-              <input name="price" value={price} onChange={(e) => setPrice(e.target.value)} type="number" placeholder="45000" className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" required />
+              <input name="price" value={price} onChange={(e) => setPrice(e.target.value)} type="number" className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" required />
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Precio Comparación</label>
-              <input name="compareAtPrice" value={compareAtPrice} onChange={(e) => setCompareAtPrice(e.target.value)} type="number" placeholder="55000" className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+              <input name="compareAtPrice" value={compareAtPrice} onChange={(e) => setCompareAtPrice(e.target.value)} type="number" className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
             </div>
           </div>
 
@@ -81,23 +84,42 @@ export default function NewProductPage() {
             </select>
           </div>
 
-          {/* Sizes */}
+          {/* Status */}
           <div className="flex flex-col gap-2">
-            <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Tallas (Separadas por comas)</label>
-            <input name="sizes" value={sizes} onChange={(e) => setSizes(e.target.value)} type="text" placeholder="Ej: S, M, L, XL" className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+            <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Estado</label>
+            <select name="status" value={status} onChange={(e) => setStatus(e.target.value)} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors appearance-none">
+              <option value="active">Activo (Visible)</option>
+              <option value="draft">Borrador</option>
+              <option value="archived">Archivado</option>
+            </select>
           </div>
 
           {/* Description */}
           <div className="flex flex-col gap-2">
-            <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Descripción Corta</label>
-            <textarea name="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Describe el concepto, fit y material..." className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+            <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Descripción</label>
+            <textarea name="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
           </div>
-
-          <input type="hidden" name="status" value="active" />
 
           <button disabled={isSubmitting} type="submit" className="bg-white text-black hover:bg-accent transition-colors font-mono font-bold text-sm uppercase tracking-widest px-10 py-5 flex items-center justify-center gap-2">
             {isSubmitting && <Loader2 className="animate-spin w-4 h-4" />}
-            Añadir
+            Guardar Cambios
+          </button>
+        </form>
+
+        {/* Delete */}
+        <form
+          action={async (formData) => {
+            if (!confirm('¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.')) return;
+            setIsDeleting(true);
+            await deleteProduct(formData);
+            setIsDeleting(false);
+          }}
+          className="border-t border-red-500/20 pt-8 pb-24"
+        >
+          <input type="hidden" name="productId" value={product.id} />
+          <button disabled={isDeleting} type="submit" className="text-red-500 hover:text-red-400 font-mono text-xs uppercase tracking-widest flex items-center gap-2 transition-colors">
+            {isDeleting ? <Loader2 className="animate-spin w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+            Eliminar Producto Permanentemente
           </button>
         </form>
       </div>
@@ -108,7 +130,6 @@ export default function NewProductPage() {
           <span className="font-mono text-[10px] uppercase text-zinc-500 tracking-widest">Previsualización</span>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-8 w-full max-w-sm">
-          {/* Product Card Preview */}
           <div className="w-full flex flex-col gap-4">
             <div className="relative aspect-[3/4] bg-[#111111] overflow-hidden border border-white/5 flex items-center justify-center">
               {imagePreview ? (
@@ -122,10 +143,15 @@ export default function NewProductPage() {
               <div className="absolute top-4 left-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground z-20">
                 {category.toUpperCase()}
               </div>
+              <span className={`absolute top-4 right-4 px-2 py-1 text-[10px] uppercase tracking-widest border z-20 ${
+                status === 'active' ? 'border-accent text-accent' : status === 'draft' ? 'border-yellow-500 text-yellow-500' : 'border-red-500 text-red-500'
+              }`}>
+                {status}
+              </span>
             </div>
             <div className="flex justify-between items-start">
               <h3 className="font-display font-bold text-lg uppercase tracking-widest text-foreground">
-                {name || 'NOMBRE DEL PRODUCTO'}
+                {name || 'NOMBRE'}
               </h3>
               <span className="font-mono text-sm tracking-wider text-muted-foreground">
                 {price ? `$${Number(price).toLocaleString('es-CL')}` : '$0'}
@@ -133,13 +159,6 @@ export default function NewProductPage() {
             </div>
             {description && (
               <p className="font-sans text-xs text-foreground/60 uppercase tracking-[0.15em] leading-loose">{description}</p>
-            )}
-            {sizes && (
-              <div className="flex gap-2 mt-2">
-                {sizes.split(',').map((s) => s.trim()).filter(Boolean).map((s) => (
-                  <span key={s} className="border border-white/20 px-3 py-1 font-mono text-[10px] uppercase">{s}</span>
-                ))}
-              </div>
             )}
           </div>
         </div>

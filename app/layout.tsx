@@ -3,6 +3,7 @@ import { Manrope, Syne } from 'next/font/google';
 import './globals.css';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { WhatsAppBubble } from '@/components/layout/WhatsAppBubble';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -32,6 +33,7 @@ export default function RootLayout({
         className={`${manrope.variable} ${syne.variable} antialiased bg-background text-foreground selection:bg-accent selection:text-black`}
       >
         {children}
+        <WhatsAppBubble />
         <Analytics />
         <SpeedInsights />
       </body>

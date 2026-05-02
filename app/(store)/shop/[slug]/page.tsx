@@ -2,20 +2,26 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import Image from 'next/image';
+import { db } from '@/lib/db';
+import { products } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import { notFound } from 'next/navigation';
 
-// MOCK DATA: Esto luego vendrá de Drizzle ORM (ej. await db.query.products.findFirst({ where: eq(products.slug, params.slug) }))
-const dbProduct = {
-  id: 1,
-  title: 'DECAY HOODIE',
-  price: 45000,
-  slug: 'decay-hoodie',
-  category: 'OUTERWEAR',
-  description: 'Prenda diseñada con patrones destructivos y materiales de alta resistencia. Estética oscura pensada para la ciudad de asfalto y neón. Costuras expuestas y silueta oversize fluida.',
-  sizes: ['S', 'M', 'L', 'XL'],
-  images: [null, null], // Lista de imágenes (null = espacio dinámico)
-};
+export const dynamic = "force-dynamic";
 
-export default function ProductDetailPage({ params }: { params: { slug: string } }) {
+export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  
+  const product = await db.query.products.findFirst({
+    where: eq(products.slug, slug),
+    with: { variants: true },
+  });
+
+  if (!product) notFound();
+
+  const imgs = product.images as string[];
+  const productImages = Array.isArray(imgs) && imgs.length > 0 ? imgs : [null];
+
   return (
     <main className="min-h-screen relative bg-background overflow-hidden pt-24 pb-32">
       {/* Noise Overlay */}
@@ -32,15 +38,15 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
           
           {/* Product Images (Gallery) */}
           <div className="flex-1 flex flex-col gap-4">
-            {dbProduct.images.map((img, idx) => (
+            {productImages.map((img, idx) => (
               <div key={idx} className="relative w-full aspect-[3/4] bg-[#111111] overflow-hidden border border-white/5 flex items-center justify-center">
                 {img ? (
-                  <Image src={img} alt={`${dbProduct.title} - Vista ${idx + 1}`} fill className="object-cover grayscale hover:grayscale-0 transition-all duration-700" />
+                  <Image src={img} alt={`${product.name} - Vista ${idx + 1}`} fill className="object-cover grayscale hover:grayscale-0 transition-all duration-700" />
                 ) : (
                   <div className="flex flex-col items-center gap-3 text-zinc-600">
                     <ImageIcon className="w-12 h-12 opacity-50" />
                     <span className="font-mono text-xs uppercase tracking-widest text-center">
-                      Imagen Dinámica {idx + 1}<br/>(Admin Panel)
+                      Sin imagen
                     </span>
                   </div>
                 )}
@@ -51,33 +57,39 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
           {/* Product Details */}
           <div className="flex-1 flex flex-col lg:sticky lg:top-24 h-fit">
             <div className="font-mono text-xs text-accent uppercase tracking-widest mb-4">
-              {dbProduct.category} // 00{dbProduct.id}
+              {product.category.toUpperCase()}
             </div>
             <h1 className="text-5xl md:text-7xl font-display font-bold uppercase tracking-tighter text-foreground mb-6 leading-none">
-              {dbProduct.title}
+              {product.name}
             </h1>
-            <div className="font-mono text-2xl text-muted-foreground mb-12">
-              ${dbProduct.price.toLocaleString('es-CL')}
+            <div className="font-mono text-2xl text-muted-foreground mb-12 flex items-center gap-4">
+              ${Number(product.price).toLocaleString('es-CL')}
+              {product.compareAtPrice && (
+                <span className="text-base line-through text-zinc-600">${Number(product.compareAtPrice).toLocaleString('es-CL')}</span>
+              )}
             </div>
 
-            <p className="font-sans text-sm text-foreground/70 uppercase tracking-[0.15em] leading-loose mb-12 max-w-md">
-              {dbProduct.description}
-            </p>
+            {product.description && (
+              <p className="font-sans text-sm text-foreground/70 uppercase tracking-[0.15em] leading-loose mb-12 max-w-md">
+                {product.description}
+              </p>
+            )}
 
             {/* Size Selector */}
-            <div className="mb-12">
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Talla</span>
-                <button className="font-mono text-[10px] text-accent uppercase tracking-widest underline underline-offset-4">Guía de Tallas</button>
+            {product.variants.length > 0 && (
+              <div className="mb-12">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Talla</span>
+                </div>
+                <div className="grid grid-cols-4 gap-4">
+                  {product.variants.map((v) => (
+                    <button key={v.id} disabled={v.stock === 0} className={`border py-4 font-mono text-sm transition-colors ${v.stock === 0 ? 'border-white/5 text-zinc-700 cursor-not-allowed' : 'border-white/20 hover:border-accent hover:text-accent'}`}>
+                      {v.size}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                {dbProduct.sizes.map((size) => (
-                  <button key={size} className="border border-white/20 py-4 font-mono text-sm hover:border-accent hover:text-accent transition-colors">
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Add to Cart CTA */}
             <button className={buttonVariants({ 
