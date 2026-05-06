@@ -18,8 +18,35 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: 'Anta Indumentaria | Dark Luxury',
-  description: 'Tienda online de vestuario urbano independiente con estética alternativa, oscura y editorial.',
+  metadataBase: new URL('https://antaindumentaria.cl'),
+  title: {
+    template: '%s | ANTA Indumentaria',
+    default: 'ANTA Indumentaria | Vestuario Urbano y Streetwear Chileno',
+  },
+  description: 'Anta Indumentaria. Estética vanguardista y disruptiva. Ropa urbana y streetwear Made in Chile. Compra poleras, polerones, buzos y conjuntos exclusivos.',
+  keywords: ['anta', 'anta indumentaria', 'anta ropa', 'ropa urbana chile', 'streetwear chile', 'poleras oversize', 'boxy fit chile', 'vestuario independiente', 'diseño chileno'],
+  authors: [{ name: 'Anta Indumentaria' }],
+  creator: 'Anta Indumentaria',
+  publisher: 'Anta Indumentaria',
+  openGraph: {
+    title: 'ANTA Indumentaria | Vestuario Urbano',
+    description: 'Estética vanguardista y disruptiva. Ropa urbana y streetwear Made in Chile.',
+    url: 'https://antaindumentaria.cl',
+    siteName: 'ANTA Indumentaria',
+    locale: 'es_CL',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   icons: {
     icon: [
       { url: '/PNG/icon-blanco.png', sizes: '192x192', type: 'image/png' },

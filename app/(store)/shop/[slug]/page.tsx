@@ -8,7 +8,40 @@ import { notFound } from 'next/navigation';
 import { AddToCartButton } from '@/components/store/AddToCartButton';
 import { ProductGallery } from '@/components/store/ProductGallery';
 
+import { Metadata } from 'next';
+
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await db.query.products.findFirst({
+    where: eq(products.slug, slug),
+  });
+
+  if (!product) {
+    return { title: 'Producto no encontrado' };
+  }
+
+  const imgs = product.images as string[];
+  const mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : '';
+
+  return {
+    title: `${product.name} | ANTA Indumentaria`,
+    description: product.description || `Compra ${product.name} en ANTA Indumentaria. Estética urbana vanguardista.`,
+    openGraph: {
+      title: `${product.name} | ANTA Indumentaria`,
+      description: product.description || `Compra ${product.name} en ANTA Indumentaria.`,
+      images: mainImage ? [mainImage] : [],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${product.name} | ANTA Indumentaria`,
+      description: product.description || `Compra ${product.name} en ANTA Indumentaria.`,
+      images: mainImage ? [mainImage] : [],
+    }
+  };
+}
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
