@@ -70,6 +70,7 @@ export default async function Home() {
                   alt="Anta Hero" 
                   fill
                   className="object-cover grayscale contrast-125 brightness-90 group-hover:scale-105 transition-transform duration-700 ease-out"
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   priority
                 />
                 {/* Vignette & overlays to blend the photo into the background */}
@@ -106,6 +107,7 @@ export default async function Home() {
                        alt="Concept" 
                        fill 
                        className="object-cover grayscale contrast-125 brightness-90 group-hover:scale-105 transition-transform duration-700 ease-out" 
+                       sizes="(max-width: 768px) 100vw, 33vw"
                      />
                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 z-10 pointer-events-none transition-opacity duration-700 group-hover:opacity-80"></div>
                      <div className="absolute inset-0 bg-accent/5 mix-blend-overlay z-10 pointer-events-none"></div>
