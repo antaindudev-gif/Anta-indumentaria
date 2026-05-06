@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders } from "@/lib/schema";
+import { orders, orderItems, productVariants } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
 // Nota: El envío de correos vía Resend
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
           await sendEmail({
             to: orderRecord.guestEmail,
             subject: "¡Pago Aprobado! - Anta Indumentaria",
-            html: `<h2>¡Hola ${orderRecord.shippingAddress?.name || 'Cliente'}!</h2>
+            html: `<h2>¡Hola ${(orderRecord.shippingAddress as any)?.name || 'Cliente'}!</h2>
                    <p>Tu comprobante ha sido revisado y <b>aprobado exitosamente</b>.</p>
                    <p>Estamos procesando tu orden #${orderId}. Te notificaremos apenas tu pedido sea despachado.</p>
                    <p>Gracias por preferir Anta Indumentaria.</p>`,
@@ -83,8 +83,29 @@ export async function POST(req: Request) {
 
         if (!orderRecord) return NextResponse.json({ error: "Order not found" }, { status: 404 });
         
+        // 2. Actualizar estado a cancelado
         await db.update(orders).set({ status: "cancelled" }).where(eq(orders.id, orderId));
 
+        // 3. Devolver el stock a las variantes
+        const items = await db.query.orderItems.findMany({
+          where: eq(orderItems.orderId, orderId)
+        });
+
+        for (const item of items) {
+          if (!item.variantId) continue;
+
+          const variant = await db.query.productVariants.findFirst({
+            where: eq(productVariants.id, item.variantId)
+          });
+          
+          if (variant) {
+            await db.update(productVariants)
+              .set({ stock: variant.stock + item.quantity })
+              .where(eq(productVariants.id, variant.id));
+          }
+        }
+
+        // 4. Eliminar botones
         await fetch(`https://api.telegram.org/bot${token}/editMessageReplyMarkup`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -110,7 +131,7 @@ export async function POST(req: Request) {
           await sendEmail({
             to: orderRecord.guestEmail,
             subject: "Problemas con tu Pago - Anta Indumentaria",
-            html: `<h2>Hola ${orderRecord.shippingAddress?.name || 'Cliente'}</h2>
+            html: `<h2>Hola ${(orderRecord.shippingAddress as any)?.name || 'Cliente'}</h2>
                    <p>Hemos revisado tu comprobante para la orden #${orderId} pero lamentablemente <b>no pudimos verificar el pago</b>.</p>
                    <p>Tu orden ha sido pausada temporalmente. Si crees que esto es un error o tienes dudas, por favor contáctanos directamente respondiendo este correo.</p>`,
           });

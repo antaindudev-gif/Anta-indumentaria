@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { orders, orderItems } from "@/lib/schema";
+import { orders, orderItems, productVariants } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 import { uploadToR2 } from "@/lib/s3";
 import sharp from "sharp";
 // import { redirect } from "next/navigation";
@@ -47,7 +48,7 @@ export async function createOrder(formData: FormData) {
       receiptUrl,
     }).returning();
 
-    // Insert items
+    // Insert items and decrease stock
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: newOrder.id,
@@ -58,6 +59,27 @@ export async function createOrder(formData: FormData) {
         total: (item.quantity * (item.price || 0)).toString(),
         productSnapshot: item,
       });
+
+      // Fetch current variant to check stock
+      const variant = await db.query.productVariants.findFirst({
+        where: (variants, { eq }) => eq(variants.id, item.variantId),
+        with: { product: true }
+      });
+
+      if (variant) {
+        const newStock = Math.max(0, variant.stock - item.quantity);
+        
+        // Update stock
+        await db.update(productVariants)
+          .set({ stock: newStock })
+          .where(eq(productVariants.id, item.variantId));
+
+        // Low Stock Alert
+        if (newStock === 0) {
+          const alertMsg = `⚠️ <b>ALERTA DE STOCK ALTO</b> ⚠️\n\nEl producto <b>${variant.product.name}</b> (Talla ${variant.size}) acaba de quedarse sin stock debido a la orden ${newOrder.id}.`;
+          await sendTelegramNotification(alertMsg);
+        }
+      }
     }
 
     // Enviar a Telegram
