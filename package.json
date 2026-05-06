@@ -60,6 +60,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
+    "svg-path-bbox": "^2.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.5"

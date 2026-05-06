@@ -14,13 +14,25 @@ export function EditProductForm({ product }: { product: any }) {
   const [compareAtPrice, setCompareAtPrice] = useState(product.compareAtPrice ? String(product.compareAtPrice) : '');
   const [category, setCategory] = useState(product.category);
   const [status, setStatus] = useState(product.status);
-  const [imagePreview, setImagePreview] = useState<string | null>(images[0] || null);
+  const [isSale, setIsSale] = useState(product.isSale || false);
+  const [isPreOrder, setIsPreOrder] = useState(product.isPreOrder || false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [variants, setVariants] = useState<{ id?: string, size: string, color: string | null, stock: number }[]>(product.variants || []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [mainImagePreview, setMainImagePreview] = useState<string | null>(images[0] || null);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(images.slice(1));
+
+  const handleMainFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setImagePreview(URL.createObjectURL(file));
+    if (file) setMainImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleGalleryFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setGalleryPreviews(files.map(f => URL.createObjectURL(f)));
+    }
   };
 
   return (
@@ -46,13 +58,26 @@ export function EditProductForm({ product }: { product: any }) {
           <input type="hidden" name="productId" value={product.id} />
 
           {/* Image Upload */}
-          <div className="border border-white/10 bg-[#0a0a0a] p-6 flex flex-col gap-4">
-            <h2 className="font-mono text-accent text-xs uppercase tracking-widest">Fotografía</h2>
-            <label className="border border-dashed border-white/20 bg-black hover:border-accent hover:bg-accent/5 transition-all p-8 flex flex-col items-center justify-center gap-3 cursor-pointer">
-              <Upload className="w-6 h-6 text-muted-foreground" />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cambiar Imagen (se comprime a WEBP)</span>
-              <input name="imageFile" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-            </label>
+          <div className="flex flex-col gap-4">
+            <div className="border border-white/10 bg-[#0a0a0a] p-6 flex flex-col gap-4">
+              <h2 className="font-mono text-accent text-xs uppercase tracking-widest">Foto de Portada</h2>
+              <label className="border border-dashed border-white/20 bg-black hover:border-accent hover:bg-accent/5 transition-all p-8 flex flex-col items-center justify-center gap-3 cursor-pointer">
+                <Upload className="w-6 h-6 text-muted-foreground" />
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Cambiar Portada Principal</span>
+                <input name="imageFile" type="file" accept="image/*" onChange={handleMainFileChange} className="hidden" />
+              </label>
+              {mainImagePreview && <p className="text-[10px] text-accent font-mono uppercase">Portada lista.</p>}
+            </div>
+
+            <div className="border border-white/10 bg-[#0a0a0a] p-6 flex flex-col gap-4">
+              <h2 className="font-mono text-accent text-xs uppercase tracking-widest">Fotos de Galería</h2>
+              <label className="border border-dashed border-white/20 bg-black hover:border-accent hover:bg-accent/5 transition-all p-8 flex flex-col items-center justify-center gap-3 cursor-pointer">
+                <Upload className="w-6 h-6 text-muted-foreground" />
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Reemplazar Galería (Sube varias imágenes)</span>
+                <input name="galleryFiles" type="file" accept="image/*" multiple onChange={handleGalleryFileChange} className="hidden" />
+              </label>
+              {galleryPreviews.length > 0 && <p className="text-[10px] text-accent font-mono uppercase">{galleryPreviews.length} imágenes en galería.</p>}
+            </div>
           </div>
 
           {/* Name */}
@@ -77,11 +102,27 @@ export function EditProductForm({ product }: { product: any }) {
           <div className="flex flex-col gap-2">
             <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Categoría</label>
             <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors appearance-none">
-              <option value="tops">Tops</option>
-              <option value="bottoms">Bottoms</option>
-              <option value="outerwear">Outerwear</option>
-              <option value="accessories">Accesorios</option>
+              <option value="poleras">Poleras</option>
+              <option value="polerones">Polerones</option>
+              <option value="buzos">Buzos</option>
+              <option value="conjuntos">Conjuntos</option>
+              <option value="faldas">Faldas</option>
+              <option value="accesorios">Accesorios</option>
+              <option value="gorros">Gorros</option>
+              <option value="chaquetas">Chaquetas</option>
             </select>
+          </div>
+
+          {/* Labels (Oferta / Pre-Order) */}
+          <div className="flex gap-8 border border-white/10 p-4 bg-[#0a0a0a]">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" name="isSale" checked={isSale} onChange={(e) => setIsSale(e.target.checked)} className="w-4 h-4 accent-accent bg-black border-white/10" />
+              <span className="font-mono text-[10px] text-white uppercase tracking-widest">Oferta</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" name="isPreOrder" checked={isPreOrder} onChange={(e) => setIsPreOrder(e.target.checked)} className="w-4 h-4 accent-accent bg-black border-white/10" />
+              <span className="font-mono text-[10px] text-white uppercase tracking-widest">Pre Order</span>
+            </label>
           </div>
 
           {/* Status */}
@@ -98,6 +139,52 @@ export function EditProductForm({ product }: { product: any }) {
           <div className="flex flex-col gap-2">
             <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Descripción</label>
             <textarea name="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+          </div>
+
+          {/* Variants */}
+          <div className="flex flex-col gap-4 border border-white/10 p-4">
+            <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest flex justify-between items-center">
+              Variantes y Stock
+              <button type="button" onClick={() => setVariants([...variants, { size: '', color: '', stock: 0 }])} className="text-accent hover:text-white transition-colors">
+                + Añadir Variante
+              </button>
+            </label>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 items-center mb-2 px-1">
+                <span className="font-mono text-[10px] text-zinc-500 w-1/4 uppercase">Talla</span>
+                <span className="font-mono text-[10px] text-zinc-500 w-1/4 uppercase">Color</span>
+                <span className="font-mono text-[10px] text-zinc-500 w-1/4 uppercase">Stock</span>
+                <span className="w-10"></span>
+              </div>
+              {variants.map((v, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <input 
+                    value={v.size} 
+                    onChange={(e) => { const n = [...variants]; n[i].size = e.target.value; setVariants(n); }} 
+                    placeholder="S" 
+                    className="bg-black border border-white/10 p-3 font-sans text-xs text-white w-1/4 outline-none focus:border-accent uppercase" 
+                  />
+                  <input 
+                    value={v.color || ''} 
+                    onChange={(e) => { const n = [...variants]; n[i].color = e.target.value; setVariants(n); }} 
+                    placeholder="Ej: Negro" 
+                    className="bg-black border border-white/10 p-3 font-sans text-xs text-white w-1/4 outline-none focus:border-accent" 
+                  />
+                  <input 
+                    type="number" 
+                    value={v.stock} 
+                    onChange={(e) => { const n = [...variants]; n[i].stock = parseInt(e.target.value) || 0; setVariants(n); }} 
+                    placeholder="0" 
+                    className="bg-black border border-white/10 p-3 font-sans text-xs text-white w-1/4 outline-none focus:border-accent" 
+                  />
+                  <button type="button" onClick={() => { const n = [...variants]; n.splice(i, 1); setVariants(n); }} className="p-3 border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {variants.length === 0 && <p className="font-mono text-[10px] text-zinc-600 uppercase">Sin variantes. Agrega una.</p>}
+            </div>
+            <input type="hidden" name="variantsData" value={JSON.stringify(variants)} />
           </div>
 
           <button disabled={isSubmitting} type="submit" className="bg-white text-black hover:bg-accent transition-colors font-mono font-bold text-sm uppercase tracking-widest px-10 py-5 flex items-center justify-center gap-2">
@@ -132,14 +219,26 @@ export function EditProductForm({ product }: { product: any }) {
         <div className="flex-1 flex flex-col items-center justify-center p-8 w-full max-w-sm">
           <div className="w-full flex flex-col gap-4">
             <div className="relative aspect-[3/4] bg-[#111111] overflow-hidden border border-white/5 flex items-center justify-center">
-              {imagePreview ? (
-                <Image src={imagePreview} alt="Preview" fill className="object-cover grayscale" />
+              {mainImagePreview ? (
+                <Image src={mainImagePreview} alt="Preview" fill className="object-cover" />
               ) : (
                 <div className="flex flex-col items-center gap-3 text-zinc-600">
                   <ImageIcon className="w-12 h-12 opacity-50" />
                   <span className="font-mono text-[10px] uppercase tracking-widest text-center">Sin imagen</span>
                 </div>
               )}
+              <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
+                  {isPreOrder && (
+                    <span className="bg-white text-black font-mono text-[10px] uppercase font-bold px-2 py-1 tracking-widest">
+                      Pre-Order
+                    </span>
+                  )}
+                  {isSale && (
+                    <span className="bg-accent text-black font-mono text-[10px] uppercase font-bold px-2 py-1 tracking-widest">
+                      Oferta
+                    </span>
+                  )}
+              </div>
               <div className="absolute top-4 left-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground z-20">
                 {category.toUpperCase()}
               </div>

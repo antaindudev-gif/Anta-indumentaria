@@ -28,15 +28,30 @@ export async function createProduct(formData: FormData) {
   const description = formData.get("description") as string;
   const price = formData.get("price") as string;
   const compareAtPrice = formData.get("compareAtPrice") as string;
-  const category = formData.get("category") as string;
-  const status = (formData.get("status") as string) || "draft";
+  const category = formData.get("category") as any;
+  const status = (formData.get("status") as any) || "draft";
   const featured = formData.get("featured") === "on";
+  const isSale = formData.get("isSale") === "on";
+  const isPreOrder = formData.get("isPreOrder") === "on";
   const sizes = formData.get("sizes") as string;
+  const colors = formData.get("colors") as string;
 
-  // Process image
+  // Process images
   const imageFile = formData.get("imageFile") as File | null;
-  const imageUrl = await processImageFile(imageFile);
-  const images = imageUrl ? [imageUrl] : [];
+  const galleryFiles = formData.getAll("galleryFiles") as File[];
+  
+  const images = [];
+  
+  if (imageFile && imageFile.size > 0) {
+    const url = await processImageFile(imageFile);
+    if (url) images.push(url);
+  }
+  
+  const validGallery = galleryFiles.filter((f) => f.size > 0);
+  for (const file of validGallery) {
+    const url = await processImageFile(file);
+    if (url) images.push(url);
+  }
 
   const slug = generateSlug(name);
 
@@ -48,23 +63,33 @@ export async function createProduct(formData: FormData) {
       description,
       price,
       compareAtPrice: compareAtPrice || null,
-      category: category as "tops" | "bottoms" | "outerwear" | "accessories",
-      status: status as "active" | "draft" | "archived",
+      category,
+      status,
       featured,
+      isSale,
+      isPreOrder,
       images,
     })
     .returning();
 
-  // Create variants from sizes
+  // Create variants from sizes and colors
   if (sizes) {
     const sizeList = sizes.split(",").map((s) => s.trim()).filter(Boolean);
+    const colorList = colors ? colors.split(",").map((c) => c.trim()).filter(Boolean) : [""];
+
     for (const size of sizeList) {
-      await db.insert(productVariants).values({
-        productId: product.id,
-        size,
-        stock: 0,
-        sku: `ANTA-${slug.toUpperCase().slice(0, 8)}-${size.toUpperCase()}`,
-      });
+      for (const color of colorList) {
+        let skuSuffix = size.toUpperCase();
+        if (color) skuSuffix += `-${color.substring(0, 3).toUpperCase()}`;
+
+        await db.insert(productVariants).values({
+          productId: product.id,
+          size,
+          color: color || null,
+          stock: 0,
+          sku: `ANTA-${slug.toUpperCase().slice(0, 8)}-${skuSuffix}`,
+        });
+      }
     }
   }
 
@@ -80,26 +105,56 @@ export async function updateProduct(formData: FormData) {
   const description = formData.get("description") as string;
   const price = formData.get("price") as string;
   const compareAtPrice = formData.get("compareAtPrice") as string;
-  const category = formData.get("category") as string;
-  const status = (formData.get("status") as string) || "draft";
+  const category = formData.get("category") as any;
+  const status = (formData.get("status") as any) || "draft";
   const featured = formData.get("featured") === "on";
+  const isSale = formData.get("isSale") === "on";
+  const isPreOrder = formData.get("isPreOrder") === "on";
 
   const existing = await db.query.products.findFirst({ where: eq(products.id, productId) });
   if (!existing) throw new Error("Product not found");
 
-  // Process new image if uploaded
+  // Process new images if uploaded
   const imageFile = formData.get("imageFile") as File | null;
+  const galleryFiles = formData.getAll("galleryFiles") as File[];
+  const validGallery = galleryFiles.filter(f => f.size > 0);
+  
   let images = existing.images as string[];
 
-  if (imageFile && imageFile.size > 0) {
-    const newUrl = await processImageFile(imageFile);
-    // Delete old images
+  // If a new cover image is uploaded or new gallery files are uploaded
+  if ((imageFile && imageFile.size > 0) || validGallery.length > 0) {
+    const newImages = [];
+    
+    // Process cover image
+    if (imageFile && imageFile.size > 0) {
+      const url = await processImageFile(imageFile);
+      if (url) newImages.push(url);
+    } else if (images.length > 0) {
+      // Keep existing cover if not updated
+      newImages.push(images[0]);
+    }
+
+    // Process gallery images
+    if (validGallery.length > 0) {
+      for (const file of validGallery) {
+        const url = await processImageFile(file);
+        if (url) newImages.push(url);
+      }
+    } else {
+      // Keep existing gallery if not updated
+      newImages.push(...images.slice(1));
+    }
+
+    // Identify which old images were removed and delete from R2
     if (Array.isArray(images)) {
       for (const oldUrl of images) {
-        await deleteFromR2(oldUrl);
+        if (!newImages.includes(oldUrl)) {
+          await deleteFromR2(oldUrl);
+        }
       }
     }
-    images = newUrl ? [newUrl] : [];
+    
+    images = newImages;
   }
 
   const slug = generateSlug(name);
@@ -112,13 +167,56 @@ export async function updateProduct(formData: FormData) {
       description,
       price,
       compareAtPrice: compareAtPrice || null,
-      category: category as "tops" | "bottoms" | "outerwear" | "accessories",
-      status: status as "active" | "draft" | "archived",
+      category,
+      status,
       featured,
+      isSale,
+      isPreOrder,
       images,
       updatedAt: new Date(),
     })
     .where(eq(products.id, productId));
+
+  // Process variants updates
+  const variantsDataStr = formData.get("variantsData") as string;
+  if (variantsDataStr) {
+    const parsedVariants = JSON.parse(variantsDataStr);
+    
+    // Get existing variants
+    const existingVariants = await db.query.productVariants.findMany({ where: eq(productVariants.productId, productId) });
+    const parsedIds = parsedVariants.map((v: any) => v.id).filter(Boolean);
+
+    // Delete variants that were removed
+    for (const ex of existingVariants) {
+      if (!parsedIds.includes(ex.id)) {
+        await db.delete(productVariants).where(eq(productVariants.id, ex.id));
+      }
+    }
+
+    // Insert or update remaining variants
+    for (const pv of parsedVariants) {
+      if (pv.id) {
+        await db.update(productVariants).set({
+          size: pv.size,
+          color: pv.color || null,
+          stock: Number(pv.stock),
+        }).where(eq(productVariants.id, pv.id));
+      } else {
+        // Insert new variant added during edit
+        let skuSuffix = pv.size.toUpperCase();
+        if (pv.color) skuSuffix += `-${pv.color.substring(0, 3).toUpperCase()}`;
+        skuSuffix += `-${Math.floor(Math.random()*1000)}`;
+        
+        await db.insert(productVariants).values({
+          productId: productId,
+          size: pv.size,
+          color: pv.color || null,
+          stock: Number(pv.stock),
+          sku: `ANTA-${slug.toUpperCase().slice(0, 8)}-${skuSuffix}`,
+        });
+      }
+    }
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/shop");

@@ -187,7 +187,7 @@ export default function CheckoutPage() {
                   <div key={item.variantId} className="flex gap-4 py-4 first:pt-0">
                     <div className="w-16 h-20 bg-[#111111] border border-white/5 relative flex-shrink-0 overflow-hidden">
                       {item.image ? (
-                        <Image src={item.image} alt={item.name} fill className="object-cover grayscale" />
+                        <Image src={item.image} alt={item.name} fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-4 h-4 text-zinc-600" /></div>
                       )}

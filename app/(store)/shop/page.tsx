@@ -5,12 +5,37 @@ import { db } from '@/lib/db';
 import { products } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 
+import { ShopFilters } from '@/components/store/ShopFilters';
+
 export const dynamic = "force-dynamic";
 
-export default async function ShopPage() {
-  const allProducts = await db.query.products.findMany({
+export default async function ShopPage(props: { searchParams: Promise<{ sort?: string; category?: string }> }) {
+  const searchParams = await props.searchParams;
+  const sort = searchParams.sort || 'newest';
+  const category = searchParams.category || 'all';
+
+  let allProducts = await db.query.products.findMany({
     where: eq(products.status, 'active'),
     with: { variants: true },
+  });
+
+  // Filter by category
+  if (category !== 'all') {
+    allProducts = allProducts.filter(p => p.category === category);
+  }
+
+  // Sort
+  allProducts.sort((a, b) => {
+    switch (sort) {
+      case 'price-asc': return Number(a.price) - Number(b.price);
+      case 'price-desc': return Number(b.price) - Number(a.price);
+      case 'name-asc': return a.name.localeCompare(b.name);
+      case 'name-desc': return b.name.localeCompare(a.name);
+      case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case 'newest': 
+      default:
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
   });
 
   return (
@@ -28,6 +53,8 @@ export default async function ShopPage() {
               <span className="text-accent">Collection</span>
             </h1>
           </div>
+          
+          <ShopFilters />
         </div>
 
         {/* Product Grid */}
@@ -51,7 +78,7 @@ export default async function ShopPage() {
                         src={mainImage} 
                         alt={product.name} 
                         fill
-                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+                        className="object-cover transition-all duration-700 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex flex-col items-center gap-3 text-zinc-600">

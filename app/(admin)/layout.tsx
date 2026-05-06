@@ -23,6 +23,7 @@ export default async function AdminLayout({
           <Link href="/admin/analytics" className="hover:text-accent transition-colors">Analíticas</Link>
           <Link href="/admin/products" className="hover:text-accent transition-colors">Productos</Link>
           <Link href="/admin/orders" className="hover:text-accent transition-colors">Órdenes & Envíos</Link>
+          <Link href="/admin/coupons" className="hover:text-accent transition-colors">Cupones</Link>
           <Link href="/admin/settings" className="hover:text-accent transition-colors">Configuración</Link>
           
           <div className="mt-12 pt-8 border-t border-white/10 flex flex-col gap-4">

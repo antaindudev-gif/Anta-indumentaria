@@ -4,7 +4,7 @@ import { relations } from 'drizzle-orm';
 // --- ENUMS ---
 export const roleEnum = pgEnum('role', ['user', 'admin']);
 export const productStatusEnum = pgEnum('product_status', ['active', 'draft', 'archived']);
-export const categoryEnum = pgEnum('category', ['tops', 'bottoms', 'outerwear', 'accessories']);
+export const categoryEnum = pgEnum('category', ['tops', 'bottoms', 'outerwear', 'accessories', 'poleras', 'polerones', 'buzos', 'conjuntos', 'faldas', 'accesorios']);
 export const orderStatusEnum = pgEnum('order_status', ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']);
 export const paymentMethodEnum = pgEnum('payment_method', ['card', 'transfer', 'mercadopago']);
 
@@ -71,6 +71,8 @@ export const products = pgTable('products', {
   status: productStatusEnum('status').default('draft').notNull(),
   images: jsonb('images').default('[]').notNull(), // Array de URLs de R2
   featured: boolean('featured').default(false).notNull(),
+  isSale: boolean('is_sale').default(false).notNull(),
+  isPreOrder: boolean('is_pre_order').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -81,6 +83,7 @@ export const productVariants = pgTable('product_variants', {
     .notNull()
     .references(() => products.id, { onDelete: 'cascade' }),
   size: text('size').notNull(),
+  color: text('color'),
   designVariant: text('design_variant'),
   stock: integer('stock').default(0).notNull(),
   sku: text('sku').unique().notNull(),
@@ -174,4 +177,13 @@ export const storeSettings = pgTable('store_settings', {
   manifestoDescription: text('manifesto_description').notNull().default("En ANTA, creemos que la indumentaria es más que simples prendas; es una declaración de identidad, pensamiento y un vehículo de expresión profundo con el entorno."),
   galleryImage1: text('gallery_image_1'),
   galleryImage2: text('gallery_image_2'),
+});
+
+// --- COUPONS ---
+export const coupons = pgTable('coupons', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: text('code').notNull().unique(),
+  discountPercentage: integer('discount_percentage').notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });

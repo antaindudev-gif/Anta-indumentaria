@@ -35,7 +35,7 @@ export default function CartPage() {
                     {/* Image */}
                     <div className="w-24 h-32 md:w-32 md:h-40 bg-[#111111] border border-white/5 relative flex-shrink-0 overflow-hidden">
                       {item.image ? (
-                        <Image src={item.image} alt={item.name} fill className="object-cover grayscale" />
+                        <Image src={item.image} alt={item.name} fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <ImageIcon className="w-6 h-6 text-zinc-600" />

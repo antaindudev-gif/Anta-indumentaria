@@ -6,6 +6,7 @@ import { products } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { AddToCartButton } from '@/components/store/AddToCartButton';
+import { ProductGallery } from '@/components/store/ProductGallery';
 
 export const dynamic = "force-dynamic";
 
@@ -38,21 +39,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-24">
           
           {/* Product Images (Gallery) */}
-          <div className="flex-1 flex flex-col gap-4">
-            {productImages.map((img, idx) => (
-              <div key={idx} className="relative w-full aspect-[3/4] bg-[#111111] overflow-hidden border border-white/5 flex items-center justify-center">
-                {img ? (
-                  <Image src={img} alt={`${product.name} - Vista ${idx + 1}`} fill className="object-cover grayscale hover:grayscale-0 transition-all duration-700" />
-                ) : (
-                  <div className="flex flex-col items-center gap-3 text-zinc-600">
-                    <ImageIcon className="w-12 h-12 opacity-50" />
-                    <span className="font-mono text-xs uppercase tracking-widest text-center">
-                      Sin imagen
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="flex-1">
+            <ProductGallery images={productImages as string[]} productName={product.name} />
           </div>
 
           {/* Product Details */}
@@ -82,7 +70,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               price={Number(product.price)}
               image={mainImage}
               slug={product.slug}
-              variants={product.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock }))}
+              variants={product.variants.map((v) => ({ id: v.id, size: v.size, stock: v.stock, color: v.color }))}
             />
           </div>
         </div>

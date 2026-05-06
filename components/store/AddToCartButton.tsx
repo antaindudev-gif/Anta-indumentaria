@@ -10,25 +10,47 @@ interface AddToCartButtonProps {
   price: number;
   image: string | null;
   slug: string;
-  variants: { id: string; size: string; stock: number }[];
+  variants: { id: string; size: string; stock: number; color: string | null }[];
 }
 
 export function AddToCartButton({ productId, name, price, image, slug, variants }: AddToCartButtonProps) {
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const addItem = useCartStore((s) => s.addItem);
 
-  const selectedSize = variants.find((v) => v.id === selectedVariant);
+  // Derive available colors and sizes
+  const availableColors = Array.from(new Set(variants.map(v => v.color).filter(Boolean))) as string[];
+  const hasColors = availableColors.length > 0;
+
+  // Filter sizes based on selected color (if any)
+  const availableSizesForColor = hasColors && selectedColor 
+    ? variants.filter(v => v.color === selectedColor)
+    : variants;
+
+  // Derive unique sizes
+  const uniqueSizes = Array.from(new Set(availableSizesForColor.map(v => v.size)));
 
   const handleAdd = () => {
-    if (!selectedVariant || !selectedSize) return;
+    // If product has colors, a color must be selected
+    if (hasColors && !selectedColor) return;
+    if (!selectedSize) return;
+
+    // Find the actual variant ID
+    const matchedVariant = variants.find(v => 
+      v.size === selectedSize && 
+      (hasColors ? v.color === selectedColor : true)
+    );
+
+    if (!matchedVariant) return;
+
     setStatus('loading');
 
     addItem({
       productId,
-      variantId: selectedVariant,
-      name,
-      size: selectedSize.size,
+      variantId: matchedVariant.id,
+      name: hasColors ? `${name} - ${selectedColor}` : name,
+      size: selectedSize,
       price,
       image,
       quantity: 1,
@@ -43,29 +65,67 @@ export function AddToCartButton({ productId, name, price, image, slug, variants 
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Color selector */}
+      {hasColors && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Color</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {availableColors.map((color) => {
+              const isAvailable = variants.some(v => v.color === color && v.stock >= 0); // Assuming stock logic is fine or 0 allowed
+              return (
+                <button
+                  key={color}
+                  onClick={() => {
+                    setSelectedColor(color);
+                    setSelectedSize(null); // Reset size when color changes
+                  }}
+                  className={`border py-4 font-mono text-sm uppercase transition-colors ${
+                    selectedColor === color
+                      ? 'border-accent text-accent bg-accent/10'
+                      : 'border-white/20 hover:border-accent hover:text-accent'
+                  }`}
+                >
+                  {color}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Size selector */}
-      {variants.length > 0 && (
+      {uniqueSizes.length > 0 && (
         <div>
           <div className="flex justify-between items-center mb-4">
             <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Talla</span>
           </div>
           <div className="grid grid-cols-4 gap-4">
-            {variants.map((v) => (
-              <button
-                key={v.id}
-                disabled={v.stock === 0}
-                onClick={() => setSelectedVariant(v.id)}
-                className={`border py-4 font-mono text-sm transition-colors ${
-                  v.stock === 0
-                    ? 'border-white/5 text-zinc-700 cursor-not-allowed line-through'
-                    : selectedVariant === v.id
-                    ? 'border-accent text-accent bg-accent/10'
-                    : 'border-white/20 hover:border-accent hover:text-accent'
-                }`}
-              >
-                {v.size}
-              </button>
-            ))}
+            {uniqueSizes.map((size) => {
+              // Check if this specific size is in stock for the selected color
+              const specificVariant = variants.find(v => v.size === size && (hasColors ? v.color === selectedColor : true));
+              const outOfStock = specificVariant ? specificVariant.stock === 0 : false;
+              
+              return (
+                <button
+                  key={size}
+                  disabled={outOfStock || (hasColors && !selectedColor)}
+                  onClick={() => setSelectedSize(size)}
+                  className={`border py-4 font-mono text-sm uppercase transition-colors ${
+                    hasColors && !selectedColor
+                      ? 'border-white/5 text-zinc-700 cursor-not-allowed'
+                      : outOfStock
+                      ? 'border-white/5 text-zinc-700 cursor-not-allowed line-through'
+                      : selectedSize === size
+                      ? 'border-accent text-accent bg-accent/10'
+                      : 'border-white/20 hover:border-accent hover:text-accent'
+                  }`}
+                >
+                  {size}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -73,9 +133,9 @@ export function AddToCartButton({ productId, name, price, image, slug, variants 
       {/* Add to cart */}
       <button
         onClick={handleAdd}
-        disabled={!selectedVariant || status === 'loading'}
+        disabled={!selectedSize || (hasColors && !selectedColor) || status === 'loading'}
         className={`w-full text-sm py-8 font-sans font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-3 ${
-          !selectedVariant
+          (!selectedSize || (hasColors && !selectedColor))
             ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
             : status === 'success'
             ? 'bg-accent text-black'
@@ -84,8 +144,9 @@ export function AddToCartButton({ productId, name, price, image, slug, variants 
       >
         {status === 'loading' && <Loader2 className="animate-spin w-5 h-5" />}
         {status === 'success' && <Check className="w-5 h-5" />}
-        {status === 'idle' && !selectedVariant && 'Selecciona una talla'}
-        {status === 'idle' && selectedVariant && 'Agregar al Carrito'}
+        {status === 'idle' && hasColors && !selectedColor && 'Selecciona un color'}
+        {status === 'idle' && (!hasColors || selectedColor) && !selectedSize && 'Selecciona una talla'}
+        {status === 'idle' && selectedSize && (hasColors ? selectedColor : true) && 'Agregar al Carrito'}
         {status === 'loading' && 'Agregando...'}
         {status === 'success' && '¡Agregado!'}
       </button>

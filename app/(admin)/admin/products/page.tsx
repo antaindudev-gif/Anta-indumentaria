@@ -51,7 +51,7 @@ export default async function AdminProductsPage() {
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-zinc-900 border border-white/10 overflow-hidden">
                           {p.images && (p.images as string[])[0] ? (
-                            <img src={(p.images as string[])[0]} alt={p.name} className="w-full h-full object-cover grayscale opacity-80" />
+                            <img src={(p.images as string[])[0]} alt={p.name} className="w-full h-full object-cover opacity-80" />
                           ) : (
                             <div className="w-full h-full bg-zinc-800" />
                           )}
