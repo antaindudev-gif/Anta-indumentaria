@@ -3,9 +3,10 @@
 import { useCartStore } from '@/stores/cartStore';
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, CreditCard, Banknote } from 'lucide-react';
+import { ArrowLeft, Loader2, CreditCard, Banknote, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Image as ImageIcon } from 'lucide-react';
+import { createOrder } from '@/app/actions/orders';
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
@@ -21,6 +22,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'mercadopago' | 'transfer'>('mercadopago');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const shippingCost: number = 0; // Por definir
@@ -31,45 +33,41 @@ export default function CheckoutPage() {
     if (items.length === 0) return;
     setIsSubmitting(true);
 
-    // TODO: Conectar con MercadoPago API cuando los tokens estén listos
-    // Por ahora, simular el flujo
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: items.map((i) => ({
-            productId: i.productId,
-            variantId: i.variantId,
-            quantity: i.quantity,
-            unitPrice: i.price,
-            name: i.name,
-            size: i.size,
-            image: i.image,
-          })),
-          customer: { name, email, phone, rut },
-          shippingAddress: { region, city, address },
-          notes,
-          paymentMethod,
-          subtotal,
-          shippingCost,
-          total,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        clearCart();
-        if (paymentMethod === 'mercadopago' && data.paymentUrl) {
-          window.location.href = data.paymentUrl;
-        } else {
-          window.location.href = `/order-confirmation/${data.orderId}`;
-        }
-      } else {
-        alert('Error al crear la orden. Intenta de nuevo.');
+      const formData = new FormData();
+      formData.append("items", JSON.stringify(items));
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("phone", phone);
+      formData.append("rut", rut);
+      formData.append("region", region);
+      formData.append("city", city);
+      formData.append("address", address);
+      formData.append("notes", notes);
+      formData.append("paymentMethod", paymentMethod);
+      formData.append("subtotal", subtotal.toString());
+      formData.append("shippingCost", shippingCost.toString());
+      formData.append("total", total.toString());
+      
+      if (paymentMethod === "transfer" && receiptFile) {
+        formData.append("receiptImage", receiptFile);
+      } else if (paymentMethod === "transfer" && !receiptFile) {
+        alert("Debes subir tu comprobante de transferencia");
+        setIsSubmitting(false);
+        return;
       }
-    } catch {
+
+      const response = await createOrder(formData);
+      if (response && response.success) {
+        clearCart();
+        window.location.href = `/order-confirmation/${response.orderId}`;
+      } else {
+        throw new Error("Respuesta inválida del servidor");
+      }
+    } catch (e) {
       alert('Error de conexión. Intenta de nuevo.');
+      console.error(e);
+      setIsSubmitting(false);
     }
 
     setIsSubmitting(false);
@@ -174,6 +172,34 @@ export default function CheckoutPage() {
                   <span className="text-[10px] text-zinc-500">Banco nacional</span>
                 </button>
               </div>
+
+              {paymentMethod === 'transfer' && (
+                <div className="mt-6 p-6 border border-accent/20 bg-accent/5 flex flex-col gap-4">
+                  <div className="font-mono text-xs text-white uppercase tracking-widest mb-2 border-b border-accent/20 pb-2">Datos de Transferencia</div>
+                  <div className="font-sans text-sm text-zinc-400 space-y-1">
+                    <p><strong className="text-white">Banco:</strong> Banco Estado</p>
+                    <p><strong className="text-white">Tipo de Cuenta:</strong> Cuenta RUT</p>
+                    <p><strong className="text-white">Número:</strong> 19.456.789</p>
+                    <p><strong className="text-white">RUT:</strong> 19.456.789-0</p>
+                    <p><strong className="text-white">Correo:</strong> pagos@antaindumentaria.cl</p>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-accent/20">
+                    <label className="font-mono text-[10px] text-accent uppercase tracking-widest block mb-3">Adjuntar Comprobante *</label>
+                    <label className="flex items-center justify-center gap-2 border border-dashed border-white/20 p-6 bg-black hover:bg-white/5 transition-colors cursor-pointer text-sm text-zinc-500 hover:text-white">
+                      <Upload className="w-4 h-4" />
+                      {receiptFile ? receiptFile.name : 'Seleccionar Foto o PDF'}
+                      <input 
+                        type="file" 
+                        accept="image/*,.pdf" 
+                        className="hidden" 
+                        onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                        required={paymentMethod === 'transfer'}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

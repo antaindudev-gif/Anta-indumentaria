@@ -103,6 +103,7 @@ export const orders = pgTable('orders', {
   total: numeric('total', { precision: 10, scale: 2 }).notNull(),
   shippingAddress: jsonb('shipping_address').notNull(),
   notes: text('notes'),
+  receiptUrl: text('receipt_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
