@@ -27,9 +27,9 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <h4 className="font-mono text-xs text-accent uppercase tracking-widest mb-4">Ayuda</h4>
-          <Link href="/faq" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Preguntas Frecuentes</Link>
-          <Link href="/policies" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Envíos y Devoluciones</Link>
+          <h4 className="font-mono text-xs text-accent uppercase tracking-widest mb-4">Legal</h4>
+          <Link href="/terms" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Términos y Condiciones</Link>
+          <Link href="/privacy" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Políticas de Privacidad</Link>
           <Link href="/contact" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Contacto</Link>
         </div>
 

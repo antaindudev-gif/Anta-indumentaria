@@ -216,6 +216,18 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              <div className="flex items-start gap-3 mt-4">
+                <input 
+                  type="checkbox" 
+                  id="terms" 
+                  required 
+                  className="mt-1 accent-accent bg-black border-white/10"
+                />
+                <label htmlFor="terms" className="font-sans text-[10px] text-zinc-500 leading-relaxed">
+                  He leído y acepto los <Link href="/terms" target="_blank" className="text-white underline">Términos y Condiciones</Link> y las <Link href="/privacy" target="_blank" className="text-white underline">Políticas de Privacidad</Link>. Entiendo las condiciones de envío y mi derecho a retracto.
+                </label>
+              </div>
+
               <button
                 type="submit"
                 disabled={isSubmitting}

@@ -7,6 +7,19 @@ import { revalidatePath } from "next/cache";
 import { uploadToR2, deleteFromR2 } from "@/lib/s3";
 import sharp from "sharp";
 import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { z } from "zod";
+
+const productSchema = z.object({
+  name: z.string().min(1, "Name is required").max(255),
+  description: z.string().optional(),
+  price: z.string().min(1, "Price is required"),
+  compareAtPrice: z.string().optional().nullable(),
+  category: z.string().min(1),
+  status: z.enum(["active", "draft", "archived"]).default("draft"),
+  sizes: z.string().optional(),
+  colors: z.string().optional(),
+});
 
 function generateSlug(name: string) {
   return name
@@ -24,17 +37,23 @@ async function processImageFile(file: File | null): Promise<string | null> {
 }
 
 export async function createProduct(formData: FormData) {
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const price = formData.get("price") as string;
-  const compareAtPrice = formData.get("compareAtPrice") as string;
-  const category = formData.get("category") as any;
-  const status = (formData.get("status") as any) || "draft";
+  const session = await auth();
+  if (session?.user?.role !== "admin") throw new Error("Unauthorized");
+
+  const validated = productSchema.parse({
+    name: formData.get("name"),
+    description: formData.get("description"),
+    price: formData.get("price"),
+    compareAtPrice: formData.get("compareAtPrice"),
+    category: formData.get("category"),
+    status: formData.get("status") || "draft",
+    sizes: formData.get("sizes"),
+    colors: formData.get("colors"),
+  });
+
   const featured = formData.get("featured") === "on";
   const isSale = formData.get("isSale") === "on";
   const isPreOrder = formData.get("isPreOrder") === "on";
-  const sizes = formData.get("sizes") as string;
-  const colors = formData.get("colors") as string;
 
   // Process images
   const imageFile = formData.get("imageFile") as File | null;
@@ -53,18 +72,18 @@ export async function createProduct(formData: FormData) {
     if (url) images.push(url);
   }
 
-  const slug = generateSlug(name);
+  const slug = generateSlug(validated.name);
 
   const [product] = await db
     .insert(products)
     .values({
-      name,
+      name: validated.name,
       slug,
-      description,
-      price,
-      compareAtPrice: compareAtPrice || null,
-      category,
-      status,
+      description: validated.description || "",
+      price: validated.price,
+      compareAtPrice: validated.compareAtPrice || null,
+      category: validated.category as any,
+      status: validated.status as any,
       featured,
       isSale,
       isPreOrder,
@@ -73,9 +92,9 @@ export async function createProduct(formData: FormData) {
     .returning();
 
   // Create variants from sizes and colors
-  if (sizes) {
-    const sizeList = sizes.split(",").map((s) => s.trim()).filter(Boolean);
-    const colorList = colors ? colors.split(",").map((c) => c.trim()).filter(Boolean) : [""];
+  if (validated.sizes) {
+    const sizeList = validated.sizes.split(",").map((s) => s.trim()).filter(Boolean);
+    const colorList = validated.colors ? validated.colors.split(",").map((c) => c.trim()).filter(Boolean) : [""];
 
     for (const size of sizeList) {
       for (const color of colorList) {
@@ -100,13 +119,21 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") throw new Error("Unauthorized");
+
   const productId = formData.get("productId") as string;
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const price = formData.get("price") as string;
-  const compareAtPrice = formData.get("compareAtPrice") as string;
-  const category = formData.get("category") as any;
-  const status = (formData.get("status") as any) || "draft";
+  if (!productId) throw new Error("Missing Product ID");
+
+  const validated = productSchema.parse({
+    name: formData.get("name"),
+    description: formData.get("description"),
+    price: formData.get("price"),
+    compareAtPrice: formData.get("compareAtPrice"),
+    category: formData.get("category"),
+    status: formData.get("status") || "draft",
+  });
+
   const featured = formData.get("featured") === "on";
   const isSale = formData.get("isSale") === "on";
   const isPreOrder = formData.get("isPreOrder") === "on";
@@ -157,18 +184,18 @@ export async function updateProduct(formData: FormData) {
     images = newImages;
   }
 
-  const slug = generateSlug(name);
+  const slug = generateSlug(validated.name);
 
   await db
     .update(products)
     .set({
-      name,
+      name: validated.name,
       slug,
-      description,
-      price,
-      compareAtPrice: compareAtPrice || null,
-      category,
-      status,
+      description: validated.description || "",
+      price: validated.price,
+      compareAtPrice: validated.compareAtPrice || null,
+      category: validated.category as any,
+      status: validated.status as any,
       featured,
       isSale,
       isPreOrder,
@@ -226,7 +253,11 @@ export async function updateProduct(formData: FormData) {
 }
 
 export async function deleteProduct(formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== "admin") throw new Error("Unauthorized");
+
   const productId = formData.get("productId") as string;
+  if (!productId) throw new Error("Missing Product ID");
 
   const existing = await db.query.products.findFirst({ where: eq(products.id, productId) });
   if (!existing) throw new Error("Product not found");
