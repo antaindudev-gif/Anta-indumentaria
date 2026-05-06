@@ -96,7 +96,7 @@ export default async function Home() {
       {/* Brand Manifesto Section */}
       <section className="py-32 px-6 md:px-12 lg:px-20 bg-background relative z-10 border-t border-white/10">
         <div className="w-full max-w-[1800px] mx-auto flex flex-col md:flex-row gap-16 md:gap-32 items-center">
-          <div className="flex-1 grid grid-cols-2 gap-4">
+          <div className="flex-1 w-full grid grid-cols-2 gap-4">
             {dbConceptImages.map((item, idx) => (
                <div key={item.id} className="relative aspect-[3/4] bg-[#111111] overflow-hidden group flex items-center justify-center border border-white/10 shadow-[0_20px_50px_-10px_rgba(255,255,255,0.05)] hover:-translate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(255,255,255,0.1)] transition-all duration-700 rounded-[2px]">
                  {item.url ? (
