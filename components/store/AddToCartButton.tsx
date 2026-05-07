@@ -3,6 +3,7 @@
 import { useCartStore, CartItem } from '@/stores/cartStore';
 import { useState } from 'react';
 import { Loader2, Check } from 'lucide-react';
+import { SizeGuide } from './SizeGuide';
 
 interface AddToCartButtonProps {
   productId: string;
@@ -100,6 +101,7 @@ export function AddToCartButton({ productId, name, price, image, slug, variants 
         <div>
           <div className="flex justify-between items-center mb-4">
             <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Talla</span>
+            <SizeGuide />
           </div>
           <div className="grid grid-cols-4 gap-4">
             {uniqueSizes.map((size) => {

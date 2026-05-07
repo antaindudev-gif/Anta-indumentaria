@@ -30,6 +30,7 @@ export default async function Home() {
     <main className="flex flex-col min-h-screen relative bg-background overflow-hidden">
       {/* Noise Overlay */}
       <div className="noise-bg mix-blend-screen"></div>
+      <div className="logo-bg mix-blend-screen"></div>
       
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex flex-col justify-center px-6 md:px-12 lg:px-20 pt-32 pb-24 z-10 w-full max-w-[1800px] mx-auto">

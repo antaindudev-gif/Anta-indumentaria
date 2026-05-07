@@ -32,6 +32,10 @@ export async function updateStoreSettings(formData: FormData) {
   const heroCtaText = formData.get("heroCtaText") as string;
   const manifestoTitle = formData.get("manifestoTitle") as string;
   const manifestoDescription = formData.get("manifestoDescription") as string;
+  const conceptHeading1 = formData.get("conceptHeading1") as string;
+  const conceptText1 = formData.get("conceptText1") as string;
+  const conceptHeading2 = formData.get("conceptHeading2") as string;
+  const conceptText2 = formData.get("conceptText2") as string;
 
   const existing = await db.query.storeSettings.findFirst();
 
@@ -39,10 +43,14 @@ export async function updateStoreSettings(formData: FormData) {
   const heroImageFile = formData.get("heroImageFile") as File | null;
   const galleryImage1File = formData.get("galleryImage1File") as File | null;
   const galleryImage2File = formData.get("galleryImage2File") as File | null;
+  const conceptImage1File = formData.get("conceptImage1File") as File | null;
+  const conceptImage2File = formData.get("conceptImage2File") as File | null;
 
   const finalHeroImageUrl = await processAndUploadImage(heroImageFile, existing?.heroImageUrl || null);
   const finalGalleryImage1 = await processAndUploadImage(galleryImage1File, existing?.galleryImage1 || null);
   const finalGalleryImage2 = await processAndUploadImage(galleryImage2File, existing?.galleryImage2 || null);
+  const finalConceptImage1 = await processAndUploadImage(conceptImage1File, (existing as any)?.conceptImage1 || null);
+  const finalConceptImage2 = await processAndUploadImage(conceptImage2File, (existing as any)?.conceptImage2 || null);
 
   if (existing) {
     await db.update(storeSettings)
@@ -55,6 +63,12 @@ export async function updateStoreSettings(formData: FormData) {
         manifestoDescription,
         galleryImage1: finalGalleryImage1,
         galleryImage2: finalGalleryImage2,
+        conceptHeading1,
+        conceptText1,
+        conceptHeading2,
+        conceptText2,
+        conceptImage1: finalConceptImage1,
+        conceptImage2: finalConceptImage2,
       })
       .where(eq(storeSettings.id, "default"));
   } else {
@@ -68,6 +82,12 @@ export async function updateStoreSettings(formData: FormData) {
       manifestoDescription,
       galleryImage1: finalGalleryImage1,
       galleryImage2: finalGalleryImage2,
+      conceptHeading1,
+      conceptText1,
+      conceptHeading2,
+      conceptText2,
+      conceptImage1: finalConceptImage1,
+      conceptImage2: finalConceptImage2,
     });
   }
 

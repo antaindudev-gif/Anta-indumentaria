@@ -139,4 +139,18 @@
     inset: 0;
     z-index: 50;
   }
+  
+  .logo-bg {
+    background-image: url("/PNG/icon-blanco.png");
+    background-repeat: repeat;
+    background-size: 500px;
+    background-position: center;
+    background-attachment: fixed;
+    opacity: 0.03; /* Very dark/subtle metallic feel */
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    filter: contrast(150%) brightness(50%) grayscale(100%);
+  }
 }

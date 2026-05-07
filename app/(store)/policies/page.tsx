@@ -18,6 +18,20 @@ export default function PoliciesPage() {
               Todos los datos ingresados en el sitio web son estrictamente confidenciales y se utilizarán exclusivamente para procesar tu compra y el envío.
             </p>
           </div>
+          <div>
+            <h2 className="font-display font-bold text-2xl uppercase tracking-wider mb-6 text-accent">Envíos y Despachos</h2>
+            <p className="font-sans text-muted-foreground uppercase tracking-widest text-sm leading-loose mb-4">
+              Trabajamos exclusivamente con las siguientes compañías de envío para asegurar que tus prendas lleguen de forma segura:
+            </p>
+            <ul className="list-disc list-inside font-sans text-muted-foreground uppercase tracking-widest text-sm leading-loose mb-4">
+              <li><b>Starken</b>: Envíos a todo Chile (Por Pagar o Pagado).</li>
+              <li><b>Chilexpress</b>: Solo a sucursales autorizadas (Por Pagar).</li>
+              <li><b>Bluexpress</b>: Envíos express a domicilio.</li>
+            </ul>
+            <p className="font-sans text-muted-foreground uppercase tracking-widest text-sm leading-loose">
+              El tiempo de procesamiento y empaquetado de tu pedido es de <b>1 a 3 días hábiles</b> desde la confirmación del pago. Una vez despachado, recibirás el número de seguimiento correspondiente. ANTA Indumentaria no se hace responsable por retrasos causados exclusivamente por la empresa de transportes.
+            </p>
+          </div>
         </div>
       </div>
     </main>

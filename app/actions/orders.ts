@@ -102,3 +102,25 @@ export async function createOrder(formData: FormData) {
     throw error;
   }
 }
+
+export async function updateOrderStatus(orderId: string, status: any, trackingUrl: string) {
+  try {
+    await db.update(orders)
+      .set({ 
+        status, 
+        trackingUrl: trackingUrl || null 
+      })
+      .where(eq(orders.id, orderId));
+      
+    // Optionally notify via Telegram
+    if (trackingUrl && status === 'delivered') {
+      const msg = `📦 <b>ORDEN ENVIADA</b> 📦\n\nLa orden <code>${orderId}</code> ha sido marcada como enviada.\n<b>Tracking:</b> ${trackingUrl}`;
+      await sendTelegramNotification(msg);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("UPDATE ORDER ERROR:", error);
+    return { success: false, error: "Failed to update order" };
+  }
+}

@@ -104,6 +104,7 @@ export const orders = pgTable('orders', {
   shippingAddress: jsonb('shipping_address').notNull(),
   notes: text('notes'),
   receiptUrl: text('receipt_url'),
+  trackingUrl: text('tracking_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -178,6 +179,12 @@ export const storeSettings = pgTable('store_settings', {
   manifestoDescription: text('manifesto_description').notNull().default("En ANTA, creemos que la indumentaria es más que simples prendas; es una declaración de identidad, pensamiento y un vehículo de expresión profundo con el entorno."),
   galleryImage1: text('gallery_image_1'),
   galleryImage2: text('gallery_image_2'),
+  conceptHeading1: text('concept_heading_1').default("CREATIVE CONCEPT"),
+  conceptText1: text('concept_text_1').default("En ANTA, creemos que la indumentaria es más que simples prendas; es una declaración de identidad, pensamiento y un vehículo de expresión profundo con el entorno."),
+  conceptHeading2: text('concept_heading_2').default("DISRUPTIVE FLUID"),
+  conceptText2: text('concept_text_2').default("El tono de voz de la marca ANTA es audaz, disruptivo, directo y minimalista. Promoviendo siempre la individualidad y exclusividad de forma directa y con un lenguaje rebelde sin exceso de texto."),
+  conceptImage1: text('concept_image_1'),
+  conceptImage2: text('concept_image_2'),
 });
 
 // --- COUPONS ---

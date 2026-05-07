@@ -15,6 +15,14 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
   const [heroPreview, setHeroPreview] = useState(initialSettings.heroImageUrl);
   const [gallery1Preview, setGallery1Preview] = useState(initialSettings.galleryImage1);
   const [gallery2Preview, setGallery2Preview] = useState(initialSettings.galleryImage2);
+  
+  // Concept/About fields
+  const [conceptHeading1, setConceptHeading1] = useState(initialSettings.conceptHeading1 || "CREATIVE CONCEPT");
+  const [conceptText1, setConceptText1] = useState(initialSettings.conceptText1 || "");
+  const [conceptHeading2, setConceptHeading2] = useState(initialSettings.conceptHeading2 || "DISRUPTIVE FLUID");
+  const [conceptText2, setConceptText2] = useState(initialSettings.conceptText2 || "");
+  const [concept1Preview, setConcept1Preview] = useState(initialSettings.conceptImage1 || "");
+  const [concept2Preview, setConcept2Preview] = useState(initialSettings.conceptImage2 || "");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -135,6 +143,47 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
                   onChange={(e) => handleFileChange(e, setGallery2Preview)}
                   className="bg-[#111111] border border-white/10 p-4 font-sans text-xs text-zinc-400 outline-none focus:border-accent file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-mono file:bg-white file:text-black cursor-pointer" 
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* CONCEPT/ABOUT SECTION */}
+          <div className="border border-white/10 bg-[#0a0a0a] p-8 flex flex-col gap-6">
+            <h2 className="font-mono text-accent text-sm uppercase tracking-widest border-b border-white/10 pb-4">3. Página Concepto (/concepto)</h2>
+            
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Bloque 1</label>
+              <input name="conceptHeading1" value={conceptHeading1} onChange={(e) => setConceptHeading1(e.target.value)}
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto Bloque 1</label>
+              <textarea name="conceptText1" value={conceptText1} onChange={(e) => setConceptText1(e.target.value)}
+                rows={4} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-[10px] text-accent uppercase tracking-widest">Imagen Bloque 1</label>
+              {concept1Preview && <div className="relative w-full aspect-video bg-[#111] overflow-hidden border border-white/5"><img src={concept1Preview} className="object-cover w-full h-full" alt="" /></div>}
+              <input type="file" accept="image/*" name="conceptImage1File" onChange={(e) => handleFileChange(e, setConcept1Preview)}
+                className="font-mono text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:font-mono file:text-xs file:uppercase file:tracking-widest file:bg-accent file:text-black hover:file:bg-white cursor-pointer" />
+            </div>
+
+            <div className="border-t border-white/5 pt-6 flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Bloque 2</label>
+                <input name="conceptHeading2" value={conceptHeading2} onChange={(e) => setConceptHeading2(e.target.value)}
+                  className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto Bloque 2</label>
+                <textarea name="conceptText2" value={conceptText2} onChange={(e) => setConceptText2(e.target.value)}
+                  rows={4} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-mono text-[10px] text-accent uppercase tracking-widest">Imagen Bloque 2</label>
+                {concept2Preview && <div className="relative w-full aspect-video bg-[#111] overflow-hidden border border-white/5"><img src={concept2Preview} className="object-cover w-full h-full" alt="" /></div>}
+                <input type="file" accept="image/*" name="conceptImage2File" onChange={(e) => handleFileChange(e, setConcept2Preview)}
+                  className="font-mono text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:font-mono file:text-xs file:uppercase file:tracking-widest file:bg-accent file:text-black hover:file:bg-white cursor-pointer" />
               </div>
             </div>
           </div>
