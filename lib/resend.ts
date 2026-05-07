@@ -12,7 +12,7 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
 
   try {
     const data = await resend.emails.send({
-      from: 'Anta Indumentaria <pedidos@antaindumentaria.cl>', // Esto debe ser un dominio verificado en Resend
+      from: 'ANTA Indumentaria <contacto@antaindumentaria.cl>',
       to,
       subject,
       html,
