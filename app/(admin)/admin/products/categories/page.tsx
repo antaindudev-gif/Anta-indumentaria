@@ -28,7 +28,10 @@ export default async function CategoriesPage() {
         <div className="lg:col-span-1">
           <div className="bg-zinc-900 border border-white/10 p-6">
             <h2 className="text-xl font-display uppercase mb-4">Nueva Categoría</h2>
-            <form action={createCategory} className="space-y-4 font-sans">
+            <form action={async (formData) => {
+              "use server";
+              await createCategory(formData);
+            }} className="space-y-4 font-sans">
               <div>
                 <label className="block text-xs uppercase text-zinc-500 mb-1">Nombre</label>
                 <input 

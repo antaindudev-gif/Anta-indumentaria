@@ -1,5 +1,5 @@
-import { db } from "./lib/db.ts";
-import { categories } from "./lib/schema.ts";
+import { db } from "./lib/db";
+import { categories } from "./lib/schema";
 
 const initialCategories = [
   { name: "Tops", slug: "tops" },
