@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getCategories } from "@/app/actions/categories";
 
 export function ShopFilters() {
   const router = useRouter();
@@ -8,6 +10,12 @@ export function ShopFilters() {
 
   const currentSort = searchParams.get("sort") || "newest";
   const currentCategory = searchParams.get("category") || "all";
+
+  const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  useEffect(() => {
+    getCategories().then(setCategoriesList);
+  }, []);
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -35,14 +43,9 @@ export function ShopFilters() {
           className="bg-black border border-white/10 p-3 font-mono text-xs uppercase tracking-widest text-white outline-none focus:border-accent transition-colors cursor-pointer appearance-none min-w-[160px]"
         >
           <option value="all">Todas</option>
-          <option value="poleras">Poleras</option>
-          <option value="polerones">Polerones</option>
-          <option value="buzos">Buzos</option>
-          <option value="conjuntos">Conjuntos</option>
-          <option value="faldas">Faldas</option>
-          <option value="accesorios">Accesorios</option>
-          <option value="gorros">Gorros</option>
-          <option value="chaquetas">Chaquetas</option>
+          {categoriesList.map((cat) => (
+            <option key={cat.id} value={cat.slug}>{cat.name}</option>
+          ))}
         </select>
       </div>
 

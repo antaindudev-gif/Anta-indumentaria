@@ -17,12 +17,20 @@ export default async function AdminProductsPage() {
     <div className="flex flex-col gap-8 max-w-6xl">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-display font-bold uppercase tracking-widest text-white">Gestión de Productos</h1>
-        <Link 
-          href="/admin/products/new" 
-          className="bg-white text-black hover:bg-accent transition-colors font-mono font-bold text-xs uppercase tracking-widest px-6 py-3"
-        >
-          + Nuevo Producto
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/admin/products/categories" 
+            className="border border-white/20 text-white hover:border-accent hover:text-accent transition-colors font-mono font-bold text-xs uppercase tracking-widest px-6 py-3"
+          >
+            Categorías
+          </Link>
+          <Link 
+            href="/admin/products/new" 
+            className="bg-white text-black hover:bg-accent transition-colors font-mono font-bold text-xs uppercase tracking-widest px-6 py-3"
+          >
+            + Nuevo Producto
+          </Link>
+        </div>
       </div>
 
       <div className="border border-white/10 bg-[#0a0a0a] overflow-hidden">

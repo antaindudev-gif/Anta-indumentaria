@@ -5,6 +5,8 @@ import { ArrowLeft, Upload, Loader2, Image as ImageIcon, Trash2 } from 'lucide-r
 import Link from 'next/link';
 import Image from 'next/image';
 import { updateProduct, deleteProduct } from '@/app/actions/products';
+import { getCategories } from '@/app/actions/categories';
+import { useEffect } from 'react';
 
 export function EditProductForm({ product }: { product: any }) {
   const images = (product.images as string[]) || [];
@@ -22,6 +24,13 @@ export function EditProductForm({ product }: { product: any }) {
 
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(images[0] || null);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>(images.slice(1));
+  const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  useEffect(() => {
+    getCategories().then((data) => {
+      setCategoriesList(data);
+    });
+  }, []);
 
   const handleMainFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,14 +111,9 @@ export function EditProductForm({ product }: { product: any }) {
           <div className="flex flex-col gap-2">
             <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Categoría</label>
             <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors appearance-none">
-              <option value="poleras">Poleras</option>
-              <option value="polerones">Polerones</option>
-              <option value="buzos">Buzos</option>
-              <option value="conjuntos">Conjuntos</option>
-              <option value="faldas">Faldas</option>
-              <option value="accesorios">Accesorios</option>
-              <option value="gorros">Gorros</option>
-              <option value="chaquetas">Chaquetas</option>
+              {categoriesList.map((cat) => (
+                <option key={cat.id} value={cat.slug}>{cat.name}</option>
+              ))}
             </select>
           </div>
 

@@ -4,7 +4,6 @@ import { relations } from 'drizzle-orm';
 // --- ENUMS ---
 export const roleEnum = pgEnum('role', ['user', 'admin']);
 export const productStatusEnum = pgEnum('product_status', ['active', 'draft', 'archived']);
-export const categoryEnum = pgEnum('category', ['tops', 'bottoms', 'outerwear', 'accessories', 'poleras', 'polerones', 'buzos', 'conjuntos', 'faldas', 'accesorios']);
 export const orderStatusEnum = pgEnum('order_status', ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']);
 export const paymentMethodEnum = pgEnum('payment_method', ['card', 'transfer', 'mercadopago']);
 
@@ -59,6 +58,14 @@ export const verificationTokens = pgTable('verificationToken', {
   compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
 }));
 
+// --- CATEGORIES ---
+export const categories = pgTable('categories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // --- PRODUCTS ---
 export const products = pgTable('products', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -67,7 +74,7 @@ export const products = pgTable('products', {
   description: text('description'),
   price: numeric('price', { precision: 10, scale: 2 }).notNull(),
   compareAtPrice: numeric('compare_at_price', { precision: 10, scale: 2 }),
-  category: categoryEnum('category').notNull(),
+  category: text('category').notNull(),
   status: productStatusEnum('status').default('draft').notNull(),
   images: jsonb('images').default('[]').notNull(), // Array de URLs de R2
   featured: boolean('featured').default(false).notNull(),

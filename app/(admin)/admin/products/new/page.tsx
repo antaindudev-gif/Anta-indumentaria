@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createProduct } from '@/app/actions/products';
+import { getCategories } from '@/app/actions/categories';
 
 export default function NewProductPage() {
   const [name, setName] = useState('');
@@ -19,6 +20,16 @@ export default function NewProductPage() {
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  useEffect(() => {
+    getCategories().then((data) => {
+      setCategoriesList(data);
+      if (data.length > 0) {
+        setCategory(data[0].slug);
+      }
+    });
+  }, []);
 
   const handleMainFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,12 +109,9 @@ export default function NewProductPage() {
           <div className="flex flex-col gap-2">
             <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Categoría</label>
             <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors appearance-none">
-              <option value="poleras">Poleras</option>
-              <option value="polerones">Polerones</option>
-              <option value="buzos">Buzos</option>
-              <option value="conjuntos">Conjuntos</option>
-              <option value="faldas">Faldas</option>
-              <option value="accesorios">Accesorios</option>
+              {categoriesList.map((cat) => (
+                <option key={cat.id} value={cat.slug}>{cat.name}</option>
+              ))}
             </select>
           </div>
 
