@@ -91,19 +91,39 @@ export default async function ShopPage(props: { searchParams: Promise<{ sort?: s
                     
                     {/* Overlay Hover Effect */}
                     <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/5 transition-colors duration-500 z-10 mix-blend-overlay" />
-                    <div className="absolute top-4 left-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground z-20">
-                      {product.category.toUpperCase()}
+
+                    {/* Top-left: category tag */}
+                    <div className="absolute top-3 left-3 z-20">
+                      <span className="inline-block bg-black text-accent font-mono text-[9px] uppercase tracking-widest px-2 py-1 leading-none">
+                        {product.category.toUpperCase()}
+                      </span>
                     </div>
+
+                    {/* Top-right: OFERTA / PRE-ORDER badges */}
+                    {(product.isSale || product.isPreOrder) && (
+                      <div className="absolute top-3 right-3 z-20 flex flex-col gap-1 items-end">
+                        {product.isSale && (
+                          <span className="inline-block bg-accent text-black font-mono text-[9px] font-bold uppercase tracking-widest px-2 py-1 leading-none">
+                            OFERTA
+                          </span>
+                        )}
+                        {product.isPreOrder && (
+                          <span className="inline-block bg-black text-accent border border-accent font-mono text-[9px] font-bold uppercase tracking-widest px-2 py-1 leading-none">
+                            PRE-ORDER
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Product Info */}
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col">
+                  <div className="flex justify-between items-start mt-1">
+                    <div className="flex flex-col gap-1">
                       <h3 className="font-display font-bold text-lg md:text-xl uppercase tracking-widest text-foreground group-hover:text-accent transition-colors">
                         {product.name}
                       </h3>
                     </div>
-                    <div className="font-mono text-sm tracking-wider text-muted-foreground">
+                    <div className="font-mono text-sm tracking-wider text-muted-foreground shrink-0 ml-4">
                       ${Number(product.price).toLocaleString('es-CL')}
                     </div>
                   </div>
