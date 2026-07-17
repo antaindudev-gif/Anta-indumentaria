@@ -17,7 +17,7 @@ export function Footer() {
             </p>
           </div>
         </div>
-        
+
         <div className="flex flex-col gap-4">
           <h4 className="font-mono text-xs text-accent uppercase tracking-widest mb-4">Shop</h4>
           <Link href="/shop" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Todo</Link>
@@ -36,10 +36,9 @@ export function Footer() {
         <div className="flex flex-col gap-4">
           <h4 className="font-mono text-xs text-accent uppercase tracking-widest mb-4">Social</h4>
           <a href="#" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Instagram</a>
-          <a href="#" className="font-sans text-sm text-muted-foreground hover:text-white uppercase tracking-wider transition-colors">Spotify</a>
         </div>
       </div>
-      
+
       <div className="w-full max-w-[1800px] mx-auto flex flex-col justify-center items-center pt-8 border-t border-white/5">
         <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest text-center">
           &copy; {new Date().getFullYear()} Anta Indumentaria. All rights reserved.

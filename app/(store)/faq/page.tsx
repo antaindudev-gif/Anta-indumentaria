@@ -1,6 +1,6 @@
 export default function FAQPage() {
   return (
-    <main className="min-h-screen relative bg-background pt-32 pb-24 px-6 md:px-12">
+    <main className="min-h-screen relative pt-32 pb-24 px-6 md:px-12">
       <div className="noise-bg mix-blend-screen"></div>
       <div className="max-w-screen-xl mx-auto relative z-10">
         <h1 className="text-5xl md:text-7xl font-display font-bold uppercase tracking-tighter mb-16">FAQ</h1>

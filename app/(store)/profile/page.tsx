@@ -29,33 +29,72 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        <form className="flex flex-col gap-8">
+        <form action={async (formData) => {
+          "use server";
+          const { updateProfile } = await import("@/app/actions/profile");
+          await updateProfile(formData);
+        }} className="flex flex-col gap-8">
           <h3 className="font-mono text-accent text-xs uppercase tracking-widest">Datos de Envío Automático</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex flex-col gap-2">
               <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">RUT (Ej: 12.345.678-9)</label>
               <input 
+                name="rut"
                 type="text" 
                 defaultValue={userProfile?.rut || ''}
                 placeholder="RUT" 
                 className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Teléfono</label>
+              <input 
+                name="phone"
+                type="tel" 
+                defaultValue={(userProfile?.address as any)?.phone || ''}
+                placeholder="+56 9 1234 5678" 
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+              />
+            </div>
           </div>
           
           <div className="flex flex-col gap-2">
-            <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Dirección Completa</label>
-            <textarea 
-              rows={3} 
+            <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Calle y Número</label>
+            <input 
+              name="street"
+              type="text" 
               defaultValue={(userProfile?.address as any)?.street || ''}
-              placeholder="Calle, Número, Comuna, Región..." 
+              placeholder="Ej: Av. Providencia 1234, Depto 405" 
               className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Comuna</label>
+              <input 
+                name="comuna"
+                type="text" 
+                defaultValue={(userProfile?.address as any)?.comuna || ''}
+                placeholder="Ej: Providencia" 
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Región</label>
+              <input 
+                name="region"
+                type="text" 
+                defaultValue={(userProfile?.address as any)?.region || ''}
+                placeholder="Ej: Metropolitana" 
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+              />
+            </div>
+          </div>
+
           <div className="flex justify-end pt-4">
-            <button type="button" className="bg-white text-black px-8 py-4 font-mono text-xs uppercase tracking-widest font-bold hover:bg-accent transition-colors">
+            <button type="submit" className="bg-white text-black px-8 py-4 font-mono text-xs uppercase tracking-widest font-bold hover:bg-accent transition-colors">
               Guardar Datos
             </button>
           </div>

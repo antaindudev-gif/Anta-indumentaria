@@ -58,7 +58,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const mainImage = productImages[0] || null;
 
   return (
-    <main className="min-h-screen relative bg-background overflow-hidden pt-24 pb-32">
+    <main className="min-h-screen relative overflow-hidden pt-24 pb-32">
       {/* Noise Overlay */}
       <div className="noise-bg mix-blend-screen"></div>
 

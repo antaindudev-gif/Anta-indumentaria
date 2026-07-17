@@ -10,12 +10,12 @@ export async function Navbar() {
   return (
     <header className="fixed top-0 left-0 w-full flex justify-between items-center z-50 px-6 md:px-12 py-3 bg-black/80 backdrop-blur-md border-b border-white/5">
       <Link href="/" className="flex items-center">
-        <img src="/SVG/icon-blanco.svg" alt="ANTA" className="h-10 md:h-12 w-auto" />
+        <img src="/SVG/icon-blanco.svg" alt="ANTA" className="h-16 md:h-20 w-auto" />
       </Link>
       
       <div className="flex items-center gap-6 md:gap-12">
         {/* Desktop Nav — hidden on mobile */}
-        <nav className="hidden md:flex gap-10 text-xs uppercase tracking-widest font-mono font-bold text-white/70 items-center">
+        <nav className="hidden md:flex gap-10 text-sm uppercase tracking-widest font-mono font-bold text-white/90 items-center">
           <Link href="/shop" className="hover:text-accent transition-colors">Catálogo</Link>
           <Link href="/about" className="hover:text-accent transition-colors">Concepto</Link>
           <Link href="/contact" className="hover:text-accent transition-colors">Contacto</Link>

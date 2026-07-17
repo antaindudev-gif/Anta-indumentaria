@@ -18,7 +18,7 @@ export default async function AboutPage() {
   };
 
   return (
-    <main className="min-h-screen relative bg-background overflow-hidden pt-24 pb-0">
+    <main className="min-h-screen relative overflow-hidden pt-24 pb-0">
       {/* Noise Overlay */}
       <div className="noise-bg mix-blend-screen"></div>
 

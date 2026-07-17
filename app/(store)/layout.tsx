@@ -8,8 +8,9 @@ export default function StoreLayout({
 }) {
   return (
     <div className="relative min-h-screen">
+      <div className="logo-bg mix-blend-screen"></div>
       <Navbar />
-      <div className="flex-1">
+      <div className="flex-1 relative z-10">
         {children}
       </div>
       <Footer />

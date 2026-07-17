@@ -146,11 +146,10 @@
     background-size: 500px;
     background-position: center;
     background-attachment: fixed;
-    opacity: 0.03; /* Very dark/subtle metallic feel */
+    opacity: 0.3;
     pointer-events: none;
     position: absolute;
     inset: 0;
     z-index: 0;
-    filter: contrast(150%) brightness(50%) grayscale(100%);
   }
 }

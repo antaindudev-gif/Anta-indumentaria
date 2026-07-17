@@ -2,7 +2,7 @@
 
 import { useCartStore } from '@/stores/cartStore';
 import Link from 'next/link';
-
+import { ShoppingBag } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export function CartCount() {
@@ -14,10 +14,10 @@ export function CartCount() {
   }, []);
 
   return (
-    <Link href="/cart" className="hover:text-accent text-white transition-colors font-mono uppercase tracking-widest text-xs font-bold relative">
-      Carrito
+    <Link href="/cart" className="hover:text-accent text-white transition-colors flex items-center gap-2 relative">
+      <ShoppingBag className="w-6 h-6" />
       {mounted && totalItems > 0 && (
-        <span className="absolute -top-2 -right-4 bg-accent text-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+        <span className="absolute -top-2 -right-3 bg-accent text-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
           {totalItems}
         </span>
       )}

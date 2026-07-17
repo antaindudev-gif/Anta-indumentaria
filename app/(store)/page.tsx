@@ -27,21 +27,13 @@ export default async function Home() {
   ];
 
   return (
-    <main className="flex flex-col min-h-screen relative bg-background overflow-hidden">
+    <main className="flex flex-col min-h-screen relative overflow-hidden">
       {/* Noise Overlay */}
       <div className="noise-bg mix-blend-screen"></div>
-      <div className="logo-bg mix-blend-screen"></div>
       
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex flex-col justify-center px-6 md:px-12 lg:px-20 pt-32 pb-24 z-10 w-full max-w-[1800px] mx-auto">
         
-        {/* Massive Background Text */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex justify-center z-0 pointer-events-none select-none mix-blend-difference opacity-40">
-          <h1 className="text-[32vw] font-display font-bold leading-none text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.1)] whitespace-nowrap tracking-tighter">
-            ANTA
-          </h1>
-        </div>
-
         {/* Hero Content */}
         <div className="relative z-20 flex flex-col lg:flex-row gap-24 lg:gap-32 lg:items-start justify-between mt-12 w-full">
           
@@ -96,7 +88,7 @@ export default async function Home() {
       </section>
 
       {/* Brand Manifesto Section */}
-      <section className="py-32 px-6 md:px-12 lg:px-20 bg-background relative z-10 border-t border-white/10">
+      <section className="py-32 px-6 md:px-12 lg:px-20 relative z-10 border-t border-white/10">
         <div className="w-full max-w-[1800px] mx-auto flex flex-col md:flex-row gap-16 md:gap-32 items-center">
           <div className="flex-1 w-full grid grid-cols-2 gap-4">
             {dbConceptImages.map((item, idx) => (
