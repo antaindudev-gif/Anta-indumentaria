@@ -59,15 +59,23 @@ async function restoreStock(orderId: string) {
   }
 }
 
-/** Find an order by partial ID (first 8 chars) or full UUID */
+/** Find an order by partial ID (first 8 chars of UUID) or full UUID */
 async function findOrderByPartialId(partialId: string) {
-  const allOrders = await db.query.orders.findMany();
-  return allOrders.find(
-    (o) =>
-      o.id === partialId ||
-      o.id.startsWith(partialId) ||
-      o.id.split("-")[0] === partialId
-  ) ?? null;
+  // Sanitize: only allow hex chars and dashes (UUID characters)
+  const safe = partialId.replace(/[^a-f0-9\-]/gi, "");
+  if (!safe) return null;
+
+  // Try exact match first (full UUID)
+  if (safe.length === 36) {
+    return await db.query.orders.findFirst({ where: eq(orders.id, safe) });
+  }
+
+  // Prefix match — uses DB-side LIKE which is index-friendly on UUID text columns
+  const results = await db.query.orders.findMany({
+    where: ilike(orders.id, `${safe}%`),
+    limit: 1,
+  });
+  return results[0] ?? null;
 }
 
 /** Format an order summary line for listings */
