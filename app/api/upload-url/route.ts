@@ -46,11 +46,21 @@ export async function GET(req: NextRequest) {
     Bucket: bucketName,
     Key: key,
     ContentType: contentType,
-    ContentLength: MAX_SIZE_BYTES, // R2 ignores this for presigned PUTs but it's good practice
+    // Do NOT include ContentLength here — it gets added to SignedHeaders and forces
+    // a CORS preflight that R2 blocks when the upload comes from the browser.
   });
 
-  // Presigned URL expires in 5 minutes — plenty of time for an upload
-  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+  // Presigned URL expires in 5 minutes.
+  // unhoistableHeaders: tell the SDK NOT to sign content-length/checksum headers
+  // so the browser can do a simple (non-preflighted) PUT request.
+  const uploadUrl = await getSignedUrl(s3Client, command, {
+    expiresIn: 300,
+    unhoistableHeaders: new Set([
+      "content-length",
+      "x-amz-checksum-crc32",
+      "x-amz-sdk-checksum-algorithm",
+    ]),
+  });
   const finalUrl = `${publicUrl}/${key}`;
 
   return NextResponse.json({ uploadUrl, finalUrl, key });
