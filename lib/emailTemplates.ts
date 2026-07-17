@@ -71,6 +71,9 @@ export function emailOrdenRecibida(opts: {
   name: string;
   orderId: string;
   total: number;
+  subtotal: number;
+  discountAmount: number;
+  couponCode: string | null;
   items: { name: string; size: string; quantity: number; price: number }[];
 }) {
   const itemRows = opts.items.map(i => `
@@ -87,6 +90,17 @@ export function emailOrdenRecibida(opts: {
     </tr>
   `).join('');
 
+  const discountRow = opts.discountAmount > 0 ? `
+    <tr>
+      <td colspan="2" style="padding:8px 0; font-size:11px; color:#555; letter-spacing:0.15em; text-transform:uppercase;">
+        Descuento${opts.couponCode ? ` (${opts.couponCode})` : ''}
+      </td>
+      <td style="padding:8px 0; text-align:right; font-size:13px; color:#22c55e; font-weight:bold;">
+        -$${opts.discountAmount.toLocaleString('es-CL')}
+      </td>
+    </tr>
+  ` : '';
+
   return wrapper(`
     <p style="font-size:10px; letter-spacing:0.35em; color:#e7ff00; text-transform:uppercase; margin:0 0 20px;">
       Orden Recibida
@@ -100,6 +114,7 @@ export function emailOrdenRecibida(opts: {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
       ${itemRows}
+      ${discountRow}
       <tr>
         <td colspan="2" style="padding:16px 0 4px; font-size:10px; color:#555; letter-spacing:0.2em; text-transform:uppercase;">Total</td>
         <td style="padding:16px 0 4px; text-align:right; font-size:20px; font-weight:bold; color:#e7ff00;">
@@ -188,20 +203,10 @@ export function emailPagoRechazado(opts: {
 export function emailPedidoEnviado(opts: {
   name: string;
   orderId: string;
-  trackingUrl: string;
-  carrier: string;
+  trackingUrl: string | null;
 }) {
-  return wrapper(`
-    <p style="font-size:10px; letter-spacing:0.35em; color:#e7ff00; text-transform:uppercase; margin:0 0 20px;">
-      📦 Tu Pedido Está en Camino
-    </p>
-    <h1 style="font-size:26px; font-weight:bold; letter-spacing:0.1em; text-transform:uppercase; color:#fff; margin:0 0 12px;">
-      ¡Tu pedido fue despachado!
-    </h1>
-    <p style="font-size:14px; color:#888; line-height:1.8; letter-spacing:0.05em; text-transform:uppercase; margin:0 0 32px;">
-      Hola <strong style="color:#fff;">${opts.name}</strong>, tu orden <strong style="color:#fff;">#${opts.orderId}</strong> fue entregada a <strong style="color:#fff;">${opts.carrier}</strong> y está en camino hacia ti.
-    </p>
-
+  const trackingBlock = opts.trackingUrl
+    ? `
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
       <tr>
         <td align="center">
@@ -211,10 +216,24 @@ export function emailPedidoEnviado(opts: {
         </td>
       </tr>
     </table>
-
     <p style="font-size:11px; color:#555; letter-spacing:0.08em; text-transform:uppercase; text-align:center;">
       Si el link no funciona, copia esta URL: <br/>
       <span style="color:#888;">${opts.trackingUrl}</span>
+    </p>`
+    : `<p style="font-size:12px; color:#555; letter-spacing:0.08em; text-transform:uppercase;">
+        En breve recibirás el número de seguimiento por este mismo correo.
+      </p>`;
+
+  return wrapper(`
+    <p style="font-size:10px; letter-spacing:0.35em; color:#e7ff00; text-transform:uppercase; margin:0 0 20px;">
+      📦 Tu Pedido Está en Camino
     </p>
+    <h1 style="font-size:26px; font-weight:bold; letter-spacing:0.1em; text-transform:uppercase; color:#fff; margin:0 0 12px;">
+      ¡Tu pedido fue despachado!
+    </h1>
+    <p style="font-size:14px; color:#888; line-height:1.8; letter-spacing:0.05em; text-transform:uppercase; margin:0 0 32px;">
+      Hola <strong style="color:#fff;">${opts.name}</strong>, tu orden <strong style="color:#fff;">#${opts.orderId}</strong> ya está en camino hacia ti.
+    </p>
+    ${trackingBlock}
   `);
 }

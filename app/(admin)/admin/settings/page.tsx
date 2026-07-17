@@ -14,6 +14,8 @@ export default async function AdminSettingsPage() {
     manifestoDescription: "En ANTA, creemos que la indumentaria es más que simples prendas; es una declaración de identidad, pensamiento y un vehículo de expresión profundo con el entorno.",
     galleryImage1: "",
     galleryImage2: "",
+    shippingFlatRate: 0,
+    freeShippingThreshold: 0,
   };
 
   return <SettingsEditor initialSettings={settings} />;

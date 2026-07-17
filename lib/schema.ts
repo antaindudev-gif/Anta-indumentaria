@@ -107,6 +107,8 @@ export const orders = pgTable('orders', {
   paymentId: text('payment_id'),
   subtotal: numeric('subtotal', { precision: 10, scale: 2 }).notNull(),
   shippingCost: numeric('shipping_cost', { precision: 10, scale: 2 }).notNull(),
+  discountAmount: numeric('discount_amount', { precision: 10, scale: 2 }).default('0').notNull(),
+  couponCode: text('coupon_code'),
   total: numeric('total', { precision: 10, scale: 2 }).notNull(),
   shippingAddress: jsonb('shipping_address').notNull(),
   notes: text('notes'),
@@ -192,6 +194,11 @@ export const storeSettings = pgTable('store_settings', {
   conceptText2: text('concept_text_2').default("El tono de voz de la marca ANTA es audaz, disruptivo, directo y minimalista. Promoviendo siempre la individualidad y exclusividad de forma directa y con un lenguaje rebelde sin exceso de texto."),
   conceptImage1: text('concept_image_1'),
   conceptImage2: text('concept_image_2'),
+  // ─── Shipping config ───────────────────────────────────────────────────────
+  // shippingFlatRate: tarifa fija de envío en CLP (0 = gratis siempre)
+  // freeShippingThreshold: subtotal mínimo para envío gratis (0 = nunca gratis)
+  shippingFlatRate: integer('shipping_flat_rate').default(0).notNull(),
+  freeShippingThreshold: integer('free_shipping_threshold').default(0).notNull(),
 });
 
 // --- COUPONS ---

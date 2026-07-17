@@ -1,12 +1,14 @@
 'use client';
 
 import { useCartStore } from '@/stores/cartStore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, CreditCard, Banknote, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, CreditCard, Banknote, Upload, Tag, X, Truck } from 'lucide-react';
 import Image from 'next/image';
 import { Image as ImageIcon } from 'lucide-react';
 import { createOrder } from '@/app/actions/orders';
+import { validateCoupon } from '@/app/actions/coupons';
+import { getShippingConfig } from '@/app/actions/settings';
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
@@ -24,14 +26,62 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'mercadopago' | 'transfer'>('mercadopago');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const shippingCost: number = 0; // Por definir
-  const total = subtotal + shippingCost;
+  // Coupon state
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercentage: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+
+  // Shipping config loaded from store_settings
+  const [shippingConfig, setShippingConfig] = useState<{ shippingFlatRate: number; freeShippingThreshold: number }>({
+    shippingFlatRate: 0,
+    freeShippingThreshold: 0,
+  });
+
+  useEffect(() => {
+    getShippingConfig().then(setShippingConfig).catch(() => {});
+  }, []);
+
+  const discountAmount = appliedCoupon ? Math.round(subtotal * (appliedCoupon.discountPercentage / 100)) : 0;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+
+  // Compute shipping cost from config
+  const shippingCost =
+    shippingConfig.freeShippingThreshold > 0 && discountedSubtotal >= shippingConfig.freeShippingThreshold
+      ? 0
+      : shippingConfig.shippingFlatRate;
+
+  const total = discountedSubtotal + shippingCost;
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setIsValidatingCoupon(true);
+    setCouponError(null);
+    const result = await validateCoupon(code);
+    setIsValidatingCoupon(false);
+    if (result.error) {
+      setCouponError(result.error);
+      setAppliedCoupon(null);
+    } else if (result.success && result.discountPercentage) {
+      setAppliedCoupon({ code, discountPercentage: result.discountPercentage });
+      setCouponInput('');
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+    setCouponInput('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
     setIsSubmitting(true);
+    setErrorMsg(null);
 
     try {
       const formData = new FormData();
@@ -45,37 +95,43 @@ export default function CheckoutPage() {
       formData.append("address", address);
       formData.append("notes", notes);
       formData.append("paymentMethod", paymentMethod);
-      formData.append("subtotal", subtotal.toString());
-      formData.append("shippingCost", shippingCost.toString());
-      formData.append("total", total.toString());
-      
-      if (paymentMethod === "transfer" && receiptFile) {
+      if (appliedCoupon) {
+        formData.append("couponCode", appliedCoupon.code);
+      }
+
+      if (paymentMethod === "transfer") {
+        if (!receiptFile) {
+          setErrorMsg("Debes adjuntar el comprobante de transferencia.");
+          setIsSubmitting(false);
+          return;
+        }
         formData.append("receiptImage", receiptFile);
-      } else if (paymentMethod === "transfer" && !receiptFile) {
-        alert("Debes subir tu comprobante de transferencia");
-        setIsSubmitting(false);
-        return;
       }
 
       const response = await createOrder(formData);
-      if (response && response.success) {
+      if (response?.success) {
         clearCart();
-        window.location.href = `/order-confirmation/${response.orderId}`;
+        // MercadoPago: redirect to payment gateway
+        if (response.mpInitPoint) {
+          window.location.href = response.mpInitPoint;
+        } else {
+          window.location.href = `/order-confirmation/${response.orderId}`;
+        }
       } else {
         throw new Error("Respuesta inválida del servidor");
       }
     } catch (e) {
-      alert('Error de conexión. Intenta de nuevo.');
+      const msg = e instanceof Error ? e.message : 'Error al procesar la orden. Intenta de nuevo.';
+      setErrorMsg(msg);
       console.error(e);
+    } finally {
       setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
   if (items.length === 0) {
     return (
-      <main className="min-h-screen bg-background pt-32 pb-24 px-6 md:px-12 flex items-center justify-center">
+      <main className="min-h-screen pt-32 pb-24 px-6 md:px-12 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-display font-bold uppercase tracking-widest mb-8">Carrito Vacío</h1>
           <Link href="/shop" className="text-accent hover:text-white font-mono text-xs uppercase tracking-widest underline underline-offset-4">
@@ -87,7 +143,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen relative bg-background pt-32 pb-24 px-6 md:px-12">
+    <main className="min-h-screen relative pt-32 pb-24 px-6 md:px-12">
       <div className="noise-bg mix-blend-screen"></div>
       <div className="max-w-screen-xl mx-auto relative z-10">
         <Link href="/cart" className="text-muted-foreground hover:text-white transition-colors mb-8 flex items-center gap-2 font-mono text-xs uppercase tracking-widest w-fit">
@@ -232,14 +288,72 @@ export default function CheckoutPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>${subtotal.toLocaleString('es-CL')}</span>
                 </div>
+                {discountAmount > 0 && appliedCoupon && (
+                  <div className="flex justify-between font-mono text-sm text-green-400">
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      {appliedCoupon.code} ({appliedCoupon.discountPercentage}%)
+                    </span>
+                    <span>-${discountAmount.toLocaleString('es-CL')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-mono text-sm">
                   <span className="text-muted-foreground">Envío</span>
-                  <span>{shippingCost === 0 ? 'Por confirmar' : `$${shippingCost.toLocaleString('es-CL')}`}</span>
+                  <span>
+                    {shippingConfig.shippingFlatRate === 0
+                      ? <span className="text-green-400">Gratis</span>
+                      : shippingCost === 0
+                        ? <span className="text-green-400">Gratis ✓</span>
+                        : `$${shippingCost.toLocaleString('es-CL')}`
+                    }
+                  </span>
                 </div>
+                {shippingConfig.freeShippingThreshold > 0 && shippingCost > 0 && (
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 uppercase tracking-widest">
+                    <Truck className="w-3 h-3" />
+                    Envío gratis sobre ${shippingConfig.freeShippingThreshold.toLocaleString('es-CL')}
+                  </div>
+                )}
                 <div className="flex justify-between font-mono text-xl text-accent pt-4 border-t border-white/10">
                   <span>Total</span>
                   <span>${total.toLocaleString('es-CL')}</span>
                 </div>
+              </div>
+
+              {/* Coupon */}
+              <div className="flex flex-col gap-2 pt-2">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between border border-green-500/30 bg-green-500/5 px-4 py-3">
+                    <span className="font-mono text-xs text-green-400 uppercase tracking-widest flex items-center gap-2">
+                      <Tag className="w-3 h-3" /> {appliedCoupon.code} · {appliedCoupon.discountPercentage}% OFF
+                    </span>
+                    <button type="button" onClick={handleRemoveCoupon} className="text-zinc-500 hover:text-white transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponInput}
+                      onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
+                      placeholder="CÓDIGO DE DESCUENTO"
+                      className="flex-1 bg-black border border-white/10 px-4 py-3 font-mono text-xs text-white placeholder:text-zinc-700 outline-none focus:border-accent transition-colors uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={isValidatingCoupon || !couponInput.trim()}
+                      className="px-4 py-3 bg-white/5 border border-white/10 hover:border-accent hover:text-accent font-mono text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {isValidatingCoupon ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Aplicar'}
+                    </button>
+                  </div>
+                )}
+                {couponError && (
+                  <p className="font-mono text-[10px] text-red-400 uppercase tracking-widest">{couponError}</p>
+                )}
               </div>
 
               <div className="flex items-start gap-3 mt-4">
@@ -254,10 +368,16 @@ export default function CheckoutPage() {
                 </label>
               </div>
 
+              {errorMsg && (
+                <div className="border border-red-500/30 bg-red-500/5 p-4 text-red-400 font-mono text-xs uppercase tracking-widest leading-relaxed">
+                  {errorMsg}
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-accent text-black hover:bg-white font-sans font-bold uppercase tracking-widest py-5 transition-all flex items-center justify-center gap-2 text-sm mt-4"
+                className="w-full bg-accent text-black hover:bg-white font-sans font-bold uppercase tracking-widest py-5 transition-all flex items-center justify-center gap-2 text-sm mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting && <Loader2 className="animate-spin w-4 h-4" />}
                 {paymentMethod === 'mercadopago' ? 'Pagar con MercadoPago' : 'Confirmar Pedido'}

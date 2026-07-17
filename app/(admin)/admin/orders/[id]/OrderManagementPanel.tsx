@@ -52,7 +52,11 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
 
   async function handleSave() {
     setSaving(true);
-    await updateOrderStatus(order.id, status, trackingUrl);
+    await updateOrderStatus(
+      order.id,
+      status as "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded",
+      trackingUrl || undefined
+    );
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

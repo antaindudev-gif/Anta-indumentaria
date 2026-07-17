@@ -8,6 +8,20 @@
       "when": 1777741133978,
       "tag": "0000_groovy_plazm",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777800000000,
+      "tag": "0001_add_coupon_fields_to_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777800001000,
+      "tag": "0002_add_shipping_config_to_store_settings",
+      "breakpoints": true
     }
   ]
 }

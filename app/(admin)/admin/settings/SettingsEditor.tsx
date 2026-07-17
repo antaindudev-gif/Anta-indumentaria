@@ -11,11 +11,11 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
   const [heroCtaText, setHeroCtaText] = useState(initialSettings.heroCtaText);
   const [manifestoTitle, setManifestoTitle] = useState(initialSettings.manifestoTitle);
   const [manifestoDescription, setManifestoDescription] = useState(initialSettings.manifestoDescription);
-  
+
   const [heroPreview, setHeroPreview] = useState(initialSettings.heroImageUrl);
   const [gallery1Preview, setGallery1Preview] = useState(initialSettings.galleryImage1);
   const [gallery2Preview, setGallery2Preview] = useState(initialSettings.galleryImage2);
-  
+
   // Concept/About fields
   const [conceptHeading1, setConceptHeading1] = useState(initialSettings.conceptHeading1 || "CREATIVE CONCEPT");
   const [conceptText1, setConceptText1] = useState(initialSettings.conceptText1 || "");
@@ -26,6 +26,13 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Shipping config
+  const [shippingFlatRate, setShippingFlatRate] = useState<number>(initialSettings.shippingFlatRate ?? 0);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(initialSettings.freeShippingThreshold ?? 0);
+
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setPreview: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -33,66 +40,87 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const formData = new FormData(e.currentTarget);
+      await updateStoreSettings(formData);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al guardar. Intenta de nuevo.";
+      setSaveError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex w-full h-[calc(100vh-6rem)] gap-8 overflow-hidden">
-      
+
       {/* LEFT FORM PANE */}
       <div className="w-1/2 h-full overflow-y-auto pr-4 custom-scrollbar">
         <h1 className="text-3xl font-display font-bold uppercase tracking-widest text-white mb-8">Edición: Home</h1>
-        
-        <form 
-          action={async (formData) => {
-            setIsSubmitting(true);
-            await updateStoreSettings(formData);
-            setIsSubmitting(false);
-          }} 
+
+        <form
+          onSubmit={handleSubmit}
+          encType="multipart/form-data"
           className="flex flex-col gap-12 pb-24"
         >
           {/* HERO SECTION */}
           <div className="border border-white/10 bg-[#0a0a0a] p-8 flex flex-col gap-6">
             <h2 className="font-mono text-accent text-sm uppercase tracking-widest border-b border-white/10 pb-4">1. Hero (Inicio)</h2>
-            
+
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Principal</label>
-              <textarea 
-                name="heroTitle" 
+              <label htmlFor="heroTitle" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Principal</label>
+              <textarea
+                id="heroTitle"
+                name="heroTitle"
                 value={heroTitle}
                 onChange={(e) => setHeroTitle(e.target.value)}
-                rows={3} 
-                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+                rows={3}
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Descripción</label>
-              <textarea 
-                name="heroDescription" 
+              <label htmlFor="heroDescription" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Descripción</label>
+              <textarea
+                id="heroDescription"
+                name="heroDescription"
                 value={heroDescription}
                 onChange={(e) => setHeroDescription(e.target.value)}
-                rows={2} 
-                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+                rows={2}
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto del Botón</label>
-              <input 
-                name="heroCtaText" 
+              <label htmlFor="heroCtaText" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto del Botón</label>
+              <input
+                id="heroCtaText"
+                name="heroCtaText"
                 value={heroCtaText}
                 onChange={(e) => setHeroCtaText(e.target.value)}
                 type="text"
-                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
               />
             </div>
 
             <div className="flex flex-col gap-2 mt-4 border-t border-white/5 pt-6">
-              <label className="font-mono text-[10px] text-accent uppercase tracking-widest">Fondo del Home (Sube imagen, se comprime a WEBP automáticamente)</label>
-              <input 
-                name="heroImageFile" 
+              <label htmlFor="heroImageFile" className="font-mono text-[10px] text-accent uppercase tracking-widest">
+                Fondo del Home (Sube imagen, se comprime a WEBP automáticamente)
+              </label>
+              <input
+                id="heroImageFile"
+                name="heroImageFile"
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleFileChange(e, setHeroPreview)}
-                className="bg-[#111111] border border-white/10 p-4 font-sans text-xs text-zinc-400 outline-none focus:border-accent transition-colors file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-accent cursor-pointer" 
+                className="bg-[#111111] border border-white/10 p-4 font-sans text-xs text-zinc-400 outline-none focus:border-accent transition-colors file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-accent cursor-pointer"
               />
             </div>
           </div>
@@ -100,48 +128,52 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
           {/* MANIFESTO SECTION */}
           <div className="border border-white/10 bg-[#0a0a0a] p-8 flex flex-col gap-6">
             <h2 className="font-mono text-accent text-sm uppercase tracking-widest border-b border-white/10 pb-4">2. Manifiesto & Galería</h2>
-            
+
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Manifiesto</label>
-              <textarea 
-                name="manifestoTitle" 
+              <label htmlFor="manifestoTitle" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Manifiesto</label>
+              <textarea
+                id="manifestoTitle"
+                name="manifestoTitle"
                 value={manifestoTitle}
                 onChange={(e) => setManifestoTitle(e.target.value)}
-                rows={2} 
-                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+                rows={2}
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto del Manifiesto</label>
-              <textarea 
-                name="manifestoDescription" 
+              <label htmlFor="manifestoDescription" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto del Manifiesto</label>
+              <textarea
+                id="manifestoDescription"
+                name="manifestoDescription"
                 value={manifestoDescription}
                 onChange={(e) => setManifestoDescription(e.target.value)}
-                rows={3} 
-                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" 
+                rows={3}
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 border-t border-white/5 pt-6">
               <div className="flex flex-col gap-2">
-                <label className="font-mono text-[10px] text-accent uppercase tracking-widest">Galería 1</label>
-                <input 
-                  name="galleryImage1File" 
+                <label htmlFor="galleryImage1File" className="font-mono text-[10px] text-accent uppercase tracking-widest">Galería 1</label>
+                <input
+                  id="galleryImage1File"
+                  name="galleryImage1File"
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleFileChange(e, setGallery1Preview)}
-                  className="bg-[#111111] border border-white/10 p-4 font-sans text-xs text-zinc-400 outline-none focus:border-accent file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-mono file:bg-white file:text-black cursor-pointer" 
+                  className="bg-[#111111] border border-white/10 p-4 font-sans text-xs text-zinc-400 outline-none focus:border-accent file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-mono file:bg-white file:text-black cursor-pointer"
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="font-mono text-[10px] text-accent uppercase tracking-widest">Galería 2</label>
-                <input 
-                  name="galleryImage2File" 
+                <label htmlFor="galleryImage2File" className="font-mono text-[10px] text-accent uppercase tracking-widest">Galería 2</label>
+                <input
+                  id="galleryImage2File"
+                  name="galleryImage2File"
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleFileChange(e, setGallery2Preview)}
-                  className="bg-[#111111] border border-white/10 p-4 font-sans text-xs text-zinc-400 outline-none focus:border-accent file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-mono file:bg-white file:text-black cursor-pointer" 
+                  className="bg-[#111111] border border-white/10 p-4 font-sans text-xs text-zinc-400 outline-none focus:border-accent file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-mono file:bg-white file:text-black cursor-pointer"
                 />
               </div>
             </div>
@@ -150,47 +182,174 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
           {/* CONCEPT/ABOUT SECTION */}
           <div className="border border-white/10 bg-[#0a0a0a] p-8 flex flex-col gap-6">
             <h2 className="font-mono text-accent text-sm uppercase tracking-widest border-b border-white/10 pb-4">3. Página Concepto (/concepto)</h2>
-            
+
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Bloque 1</label>
-              <input name="conceptHeading1" value={conceptHeading1} onChange={(e) => setConceptHeading1(e.target.value)}
-                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+              <label htmlFor="conceptHeading1" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Bloque 1</label>
+              <input
+                id="conceptHeading1"
+                name="conceptHeading1"
+                value={conceptHeading1}
+                onChange={(e) => setConceptHeading1(e.target.value)}
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
+              />
             </div>
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto Bloque 1</label>
-              <textarea name="conceptText1" value={conceptText1} onChange={(e) => setConceptText1(e.target.value)}
-                rows={4} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+              <label htmlFor="conceptText1" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto Bloque 1</label>
+              <textarea
+                id="conceptText1"
+                name="conceptText1"
+                value={conceptText1}
+                onChange={(e) => setConceptText1(e.target.value)}
+                rows={4}
+                className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
+              />
             </div>
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-accent uppercase tracking-widest">Imagen Bloque 1</label>
-              {concept1Preview && <div className="relative w-full aspect-video bg-[#111] overflow-hidden border border-white/5"><img src={concept1Preview} className="object-cover w-full h-full" alt="" /></div>}
-              <input type="file" accept="image/*" name="conceptImage1File" onChange={(e) => handleFileChange(e, setConcept1Preview)}
-                className="font-mono text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:font-mono file:text-xs file:uppercase file:tracking-widest file:bg-accent file:text-black hover:file:bg-white cursor-pointer" />
+              <label htmlFor="conceptImage1File" className="font-mono text-[10px] text-accent uppercase tracking-widest">Imagen Bloque 1</label>
+              {concept1Preview && (
+                <div className="relative w-full aspect-video bg-[#111] overflow-hidden border border-white/5">
+                  <img src={concept1Preview} className="object-cover w-full h-full" alt="Preview bloque 1" />
+                </div>
+              )}
+              <input
+                id="conceptImage1File"
+                type="file"
+                accept="image/*"
+                name="conceptImage1File"
+                onChange={(e) => handleFileChange(e, setConcept1Preview)}
+                className="font-mono text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:font-mono file:text-xs file:uppercase file:tracking-widest file:bg-accent file:text-black hover:file:bg-white cursor-pointer"
+              />
             </div>
 
             <div className="border-t border-white/5 pt-6 flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Bloque 2</label>
-                <input name="conceptHeading2" value={conceptHeading2} onChange={(e) => setConceptHeading2(e.target.value)}
-                  className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+                <label htmlFor="conceptHeading2" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Título Bloque 2</label>
+                <input
+                  id="conceptHeading2"
+                  name="conceptHeading2"
+                  value={conceptHeading2}
+                  onChange={(e) => setConceptHeading2(e.target.value)}
+                  className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
+                />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto Bloque 2</label>
-                <textarea name="conceptText2" value={conceptText2} onChange={(e) => setConceptText2(e.target.value)}
-                  rows={4} className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors" />
+                <label htmlFor="conceptText2" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Texto Bloque 2</label>
+                <textarea
+                  id="conceptText2"
+                  name="conceptText2"
+                  value={conceptText2}
+                  onChange={(e) => setConceptText2(e.target.value)}
+                  rows={4}
+                  className="bg-black border border-white/10 p-4 font-sans text-sm text-white outline-none focus:border-accent transition-colors"
+                />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="font-mono text-[10px] text-accent uppercase tracking-widest">Imagen Bloque 2</label>
-                {concept2Preview && <div className="relative w-full aspect-video bg-[#111] overflow-hidden border border-white/5"><img src={concept2Preview} className="object-cover w-full h-full" alt="" /></div>}
-                <input type="file" accept="image/*" name="conceptImage2File" onChange={(e) => handleFileChange(e, setConcept2Preview)}
-                  className="font-mono text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:font-mono file:text-xs file:uppercase file:tracking-widest file:bg-accent file:text-black hover:file:bg-white cursor-pointer" />
+                <label htmlFor="conceptImage2File" className="font-mono text-[10px] text-accent uppercase tracking-widest">Imagen Bloque 2</label>
+                {concept2Preview && (
+                  <div className="relative w-full aspect-video bg-[#111] overflow-hidden border border-white/5">
+                    <img src={concept2Preview} className="object-cover w-full h-full" alt="Preview bloque 2" />
+                  </div>
+                )}
+                <input
+                  id="conceptImage2File"
+                  type="file"
+                  accept="image/*"
+                  name="conceptImage2File"
+                  onChange={(e) => handleFileChange(e, setConcept2Preview)}
+                  className="font-mono text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:font-mono file:text-xs file:uppercase file:tracking-widest file:bg-accent file:text-black hover:file:bg-white cursor-pointer"
+                />
               </div>
             </div>
           </div>
 
-          <button disabled={isSubmitting} type="submit" className="bg-white text-black hover:bg-accent transition-colors font-mono font-bold text-sm uppercase tracking-widest px-10 py-5 shadow-2xl flex items-center justify-center gap-2">
-            {isSubmitting && <Loader2 className="animate-spin w-4 h-4" />}
-            Guardar Cambios y Publicar
+          {/* SHIPPING CONFIG SECTION */}
+          <div className="border border-white/10 bg-[#0a0a0a] p-8 flex flex-col gap-6">
+            <h2 className="font-mono text-accent text-sm uppercase tracking-widest border-b border-white/10 pb-4">4. Configuración de Envío</h2>
+
+            <p className="font-sans text-xs text-zinc-500 uppercase tracking-widest leading-loose">
+              Define la tarifa de envío que se aplicará en el checkout. Si configuras un umbral de envío gratis, los pedidos que superen ese monto tendrán envío sin costo.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2">
+                <label htmlFor="shippingFlatRate" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                  Tarifa Fija de Envío (CLP)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm text-zinc-500" aria-hidden="true">$</span>
+                  <input
+                    id="shippingFlatRate"
+                    name="shippingFlatRate"
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={shippingFlatRate}
+                    onChange={(e) => setShippingFlatRate(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full bg-black border border-white/10 pl-8 pr-4 py-4 font-mono text-sm text-white outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+                <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+                  {shippingFlatRate === 0 ? "Envío siempre gratis" : `$${shippingFlatRate.toLocaleString("es-CL")} por pedido`}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="freeShippingThreshold" className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+                  Umbral Envío Gratis (CLP)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-sm text-zinc-500" aria-hidden="true">$</span>
+                  <input
+                    id="freeShippingThreshold"
+                    name="freeShippingThreshold"
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={freeShippingThreshold}
+                    onChange={(e) => setFreeShippingThreshold(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full bg-black border border-white/10 pl-8 pr-4 py-4 font-mono text-sm text-white outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+                <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+                  {freeShippingThreshold === 0
+                    ? "Sin umbral de envío gratis"
+                    : `Gratis en pedidos sobre $${freeShippingThreshold.toLocaleString("es-CL")}`}
+                </p>
+              </div>
+            </div>
+
+            {/* Simulation table */}
+            <div className="border border-white/5 bg-black p-4 flex flex-col gap-1 font-mono text-xs">
+              <p className="text-zinc-500 uppercase tracking-widest mb-2">Simulación para el cliente</p>
+              {[10000, 20000, 50000, 100000].map((amount) => {
+                const cost = freeShippingThreshold > 0 && amount >= freeShippingThreshold ? 0 : shippingFlatRate;
+                return (
+                  <div key={amount} className="flex justify-between text-zinc-400">
+                    <span>Compra ${amount.toLocaleString("es-CL")}</span>
+                    <span className={cost === 0 ? "text-green-400" : "text-accent"}>
+                      {cost === 0 ? "Envío Gratis" : `Envío $${cost.toLocaleString("es-CL")}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {saveError && (
+            <div role="alert" className="border border-red-500/30 bg-red-500/5 p-4 text-red-400 font-mono text-xs uppercase tracking-widest leading-relaxed">
+              {saveError}
+            </div>
+          )}
+
+          <button
+            disabled={isSubmitting}
+            type="submit"
+            className={`transition-colors font-mono font-bold text-sm uppercase tracking-widest px-10 py-5 shadow-2xl flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              saveSuccess ? "bg-green-500 text-black" : "bg-white text-black hover:bg-accent"
+            }`}
+          >
+            {isSubmitting && <Loader2 className="animate-spin w-4 h-4" aria-hidden="true" />}
+            {saveSuccess ? "✓ Cambios Guardados" : "Guardar Cambios y Publicar"}
           </button>
         </form>
       </div>
@@ -200,11 +359,11 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
         <div className="sticky top-0 bg-black/80 backdrop-blur-md z-50 p-2 border-b border-white/10 flex justify-between items-center">
           <span className="font-mono text-[10px] uppercase text-zinc-500 tracking-widest">Previsualización: Home</span>
         </div>
-        
+
         {/* MINI HOME PREVIEW */}
         <div className="scale-[0.8] origin-top flex flex-col min-h-[150vh] relative bg-background overflow-hidden pointer-events-none">
           <div className="noise-bg mix-blend-screen absolute inset-0 z-0"></div>
-          
+
           <section className="relative min-h-[90vh] flex flex-col justify-center px-12 pt-32 pb-24 z-10 w-full">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex justify-center z-0 mix-blend-difference opacity-40">
               <h1 className="text-[32vw] font-display font-bold leading-none text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.1)] whitespace-nowrap tracking-tighter">
@@ -215,7 +374,7 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
             <div className="relative z-20 flex flex-col lg:flex-row gap-16 items-center justify-between mt-12 w-full">
               <div className="flex-1 max-w-2xl pb-4">
                 <h2 className="text-5xl md:text-7xl font-display font-bold text-foreground uppercase tracking-tight mb-6 leading-[0.85] whitespace-pre-line">
-                  {heroTitle || 'ROMPE LAS REGLAS.'}
+                  {heroTitle || "ROMPE LAS REGLAS."}
                 </h2>
                 <p className="text-xs md:text-sm text-muted-foreground font-sans tracking-[0.2em] uppercase mb-10 max-w-lg leading-loose">
                   {heroDescription}
@@ -227,12 +386,12 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
 
               <div className="w-full lg:w-[450px] relative aspect-[3/4] bg-[#111111] group flex items-center justify-center border border-white/5 shadow-2xl">
                 {heroPreview ? (
-                  <Image src={heroPreview} alt="Hero" fill className="object-cover grayscale" />
+                  <Image src={heroPreview} alt="Vista previa hero" fill className="object-cover grayscale" />
                 ) : (
-                  <ImageIcon className="w-12 h-12 opacity-50 text-zinc-500" />
+                  <ImageIcon className="w-12 h-12 opacity-50 text-zinc-500" aria-hidden="true" />
                 )}
-                <div className="absolute top-4 left-4 border-l border-t w-8 h-8 border-accent z-20 pointer-events-none"></div>
-                <div className="absolute bottom-4 right-4 border-r border-b w-8 h-8 border-accent z-20 pointer-events-none"></div>
+                <div className="absolute top-4 left-4 border-l border-t w-8 h-8 border-accent z-20 pointer-events-none" />
+                <div className="absolute bottom-4 right-4 border-r border-b w-8 h-8 border-accent z-20 pointer-events-none" />
               </div>
             </div>
           </section>
@@ -241,14 +400,14 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
             <div className="flex flex-col md:flex-row gap-24 items-center">
               <div className="flex-1 grid grid-cols-2 gap-4">
                 {[gallery1Preview, gallery2Preview].map((url, idx) => (
-                   <div key={idx} className="relative aspect-[3/4] bg-[#111111] overflow-hidden flex items-center justify-center border border-white/5">
-                     {url ? (
-                       <Image src={url} alt={`Gallery ${idx}`} fill className="object-cover opacity-80" />
-                     ) : (
-                       <ImageIcon className="w-6 h-6 text-zinc-600" />
-                     )}
-                     <div className="absolute bottom-4 left-4 font-mono text-xs text-muted-foreground z-30">00{idx + 1}</div>
-                   </div>
+                  <div key={idx} className="relative aspect-[3/4] bg-[#111111] overflow-hidden flex items-center justify-center border border-white/5">
+                    {url ? (
+                      <Image src={url} alt={`Galería ${idx + 1}`} fill className="object-cover opacity-80" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-zinc-600" aria-hidden="true" />
+                    )}
+                    <div className="absolute bottom-4 left-4 font-mono text-xs text-muted-foreground z-30">00{idx + 1}</div>
+                  </div>
                 ))}
               </div>
               <div className="flex-1">
@@ -259,14 +418,13 @@ export function SettingsEditor({ initialSettings }: { initialSettings: any }) {
                   {manifestoDescription}
                 </p>
                 <div className="text-accent uppercase tracking-widest text-xs font-bold flex items-center">
-                  Brand Manifesto <ArrowRight className="ml-2 w-4 h-4" />
+                  Brand Manifesto <ArrowRight className="ml-2 w-4 h-4" aria-hidden="true" />
                 </div>
               </div>
             </div>
           </section>
         </div>
       </div>
-
     </div>
   );
 }
