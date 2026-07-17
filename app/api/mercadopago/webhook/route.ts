@@ -113,25 +113,38 @@ export async function POST(req: NextRequest) {
 
     // ── APPROVED ─────────────────────────────────────────────────────────────
     if (mpStatus === "approved") {
+      // For pre-orders: first payment = 50% deposit (amountPaid = depositAmount).
+      // The order stays in "processing" until the second payment completes (amountPaid >= total).
+      // For regular orders: amountPaid = total → mark as paid immediately.
+      const orderTotal = Number(order.total);
+      const currentAmountPaid = Number(order.amountPaid ?? 0);
+      const mpTransactionAmount = Number(payment.transaction_amount ?? 0);
+      const newAmountPaid = Math.min(currentAmountPaid + mpTransactionAmount, orderTotal);
+      const isFullyPaid = newAmountPaid >= orderTotal;
+
       await db
         .update(orders)
         .set({
-          status: "paid",
+          status: isFullyPaid ? "paid" : "processing",
           paymentId: paymentId,
+          amountPaid: newAmountPaid.toString(),
           updatedAt: new Date(),
         })
         .where(eq(orders.id, orderId));
 
       // Notify Telegram
+      const orderTotal2 = Number(order.total);
       await sendTelegramNotification(
-        `✅ <b>PAGO APROBADO (MP)</b>\n\n` +
-          `Orden <code>${orderId.split("-")[0]}</code> pagada por MercadoPago.\n` +
-          `<b>ID Pago:</b> ${paymentId}\n` +
-          `<b>Total:</b> $${Number(order.total).toLocaleString("es-CL")}`
+        `✅ <b>PAGO ${isFullyPaid ? "COMPLETO" : "ABONO"} (MP)</b>\n\n` +
+          `<b>👤 Cliente:</b> ${clientName}\n` +
+          `Orden <code>${orderId.split("-")[0]}</code>\n` +
+          `<b>Abonado ahora:</b> $${mpTransactionAmount.toLocaleString("es-CL")}\n` +
+          `<b>Total abonado:</b> $${newAmountPaid.toLocaleString("es-CL")} / $${orderTotal2.toLocaleString("es-CL")}` +
+          (!isFullyPaid ? `\n⏳ Saldo pendiente: $${(orderTotal2 - newAmountPaid).toLocaleString("es-CL")}` : `\n✅ Pagado en su totalidad`)
       );
 
-      // Email to client
-      if (order.guestEmail) {
+      // Email to client (only when fully paid)
+      if (isFullyPaid && order.guestEmail) {
         await sendEmail({
           to: order.guestEmail,
           subject: "✅ Pago Aprobado — ANTA Indumentaria",

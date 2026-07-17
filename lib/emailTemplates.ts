@@ -74,6 +74,8 @@ export function emailOrdenRecibida(opts: {
   subtotal: number;
   discountAmount: number;
   couponCode: string | null;
+  isPreOrder?: boolean;
+  depositAmount?: number;
   items: { name: string; size: string; quantity: number; price: number }[];
 }) {
   const itemRows = opts.items.map(i => `
@@ -101,16 +103,29 @@ export function emailOrdenRecibida(opts: {
     </tr>
   ` : '';
 
+  const preOrderBlock = opts.isPreOrder && opts.depositAmount ? `
+    <div style="background:#1a1200; border-left:3px solid #e7ff00; padding:16px 20px; margin:16px 0;">
+      <p style="font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#e7ff00; margin:0 0 8px; font-weight:bold;">🔖 Pre-Order — Abono del 50%</p>
+      <p style="font-size:13px; color:#ccc; margin:0 0 4px;">Abono inicial (50%): <strong style="color:#e7ff00;">$${opts.depositAmount.toLocaleString('es-CL')}</strong></p>
+      <p style="font-size:13px; color:#ccc; margin:0;">Saldo al recibir el producto: <strong style="color:#fff;">$${(opts.total - opts.depositAmount).toLocaleString('es-CL')}</strong></p>
+      <p style="font-size:11px; color:#888; margin:8px 0 0; text-transform:uppercase; letter-spacing:0.1em;">Te avisaremos cuando llegue el producto para coordinar el pago del saldo.</p>
+    </div>
+  ` : '';
+
   return wrapper(`
     <p style="font-size:10px; letter-spacing:0.35em; color:#e7ff00; text-transform:uppercase; margin:0 0 20px;">
-      Orden Recibida
+      ${opts.isPreOrder ? 'Pre-Order Recibida' : 'Orden Recibida'}
     </p>
     <h1 style="font-size:26px; font-weight:bold; letter-spacing:0.1em; text-transform:uppercase; color:#fff; margin:0 0 12px;">
       ¡Hola, ${opts.name}!
     </h1>
     <p style="font-size:14px; color:#888; line-height:1.8; letter-spacing:0.05em; text-transform:uppercase; margin:0 0 32px;">
-      Recibimos tu orden. Estamos verificando tu comprobante de transferencia y te avisaremos por correo en cuanto sea aprobado.
+      ${opts.isPreOrder
+        ? 'Recibimos tu pre-order. Estamos verificando tu comprobante de transferencia y te avisaremos en cuanto el abono sea aprobado.'
+        : 'Recibimos tu orden. Estamos verificando tu comprobante de transferencia y te avisaremos por correo en cuanto sea aprobado.'}
     </p>
+
+    ${preOrderBlock}
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
       ${itemRows}
@@ -235,5 +250,56 @@ export function emailPedidoEnviado(opts: {
       Hola <strong style="color:#fff;">${opts.name}</strong>, tu orden <strong style="color:#fff;">#${opts.orderId}</strong> ya está en camino hacia ti.
     </p>
     ${trackingBlock}
+  `);
+}
+
+// ─── EMAIL: BOLETA EMITIDA ──────────────────────────────────────────────────
+export function emailBoleta(opts: {
+  name: string;
+  orderId: string;
+  total: number;
+  boletaUrl: string;
+}) {
+  return wrapper(`
+    <p style="font-size:10px; letter-spacing:0.35em; color:#e7ff00; text-transform:uppercase; margin:0 0 20px;">
+      🧾 Boleta / Comprobante
+    </p>
+    <h1 style="font-size:26px; font-weight:bold; letter-spacing:0.1em; text-transform:uppercase; color:#fff; margin:0 0 12px;">
+      Aquí está tu boleta
+    </h1>
+    <p style="font-size:14px; color:#888; line-height:1.8; letter-spacing:0.05em; text-transform:uppercase; margin:0 0 32px;">
+      Hola <strong style="color:#fff;">${opts.name}</strong>, te enviamos la boleta correspondiente a tu compra en ANTA Indumentaria.
+    </p>
+
+    <div style="background:#111; border:1px solid #222; padding:24px; margin-bottom:32px;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:10px; color:#555; letter-spacing:0.2em; text-transform:uppercase;">ID de Orden</td>
+          <td style="font-size:10px; color:#555; letter-spacing:0.2em; text-transform:uppercase; text-align:right;">Total</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#fff; font-family:monospace; padding-top:6px;">#${opts.orderId}</td>
+          <td style="font-size:18px; color:#e7ff00; font-weight:bold; text-align:right; padding-top:6px;">$${opts.total.toLocaleString('es-CL')}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="font-size:12px; color:#888; letter-spacing:0.08em; text-transform:uppercase; margin:0 0 16px;">
+      La boleta va adjunta a este correo. También puedes descargarla desde el siguiente enlace:
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td align="center">
+          <a href="${opts.boletaUrl}" style="display:inline-block; background:#e7ff00; color:#000; font-size:11px; font-weight:bold; letter-spacing:0.3em; text-transform:uppercase; padding:16px 32px; text-decoration:none;">
+            Descargar Boleta →
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="font-size:11px; color:#555; letter-spacing:0.08em; text-transform:uppercase; text-align:center;">
+      Gracias por tu compra en <strong style="color:#fff;">ANTA Indumentaria</strong>.
+    </p>
   `);
 }

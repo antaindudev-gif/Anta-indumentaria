@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { orders, orderItems, productVariants, coupons } from "@/lib/schema";
+import { orders, orderItems, productVariants, coupons, products } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { uploadToR2 } from "@/lib/s3";
 import sharp from "sharp";
@@ -17,7 +17,6 @@ interface CartItemInput {
   productId: string;
   variantId: string;
   quantity: number;
-  // These client-side values are ignored for price calculation — we re-read from DB
   name?: string;
   size?: string;
   image?: string | null;
@@ -36,39 +35,26 @@ interface VerifiedItem {
   color: string | null;
   image: string | null;
   slug: string;
+  isPreOrder: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Re-reads prices and stock from DB for each item.
- * Throws if any variant is not found or has insufficient stock.
- */
 async function verifyAndPriceItems(items: CartItemInput[]): Promise<VerifiedItem[]> {
   const verified: VerifiedItem[] = [];
 
   for (const item of items) {
-    if (!item.variantId || !item.productId) {
-      throw new Error(`Item inválido: falta variantId o productId`);
-    }
-    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
-      throw new Error(`Cantidad inválida para variante ${item.variantId}`);
-    }
+    if (!item.variantId || !item.productId) throw new Error(`Item inválido: falta variantId o productId`);
+    if (!Number.isInteger(item.quantity) || item.quantity < 1) throw new Error(`Cantidad inválida para variante ${item.variantId}`);
 
     const variant = await db.query.productVariants.findFirst({
       where: eq(productVariants.id, item.variantId),
       with: { product: true },
     });
 
-    if (!variant) {
-      throw new Error(`Variante no encontrada: ${item.variantId}`);
-    }
-    if (variant.productId !== item.productId) {
-      throw new Error(`El productId no coincide con la variante ${item.variantId}`);
-    }
-    if (variant.product.status !== "active") {
-      throw new Error(`El producto "${variant.product.name}" no está disponible`);
-    }
+    if (!variant) throw new Error(`Variante no encontrada: ${item.variantId}`);
+    if (variant.productId !== item.productId) throw new Error(`El productId no coincide con la variante ${item.variantId}`);
+    if (variant.product.status !== "active") throw new Error(`El producto "${variant.product.name}" no está disponible`);
     if (variant.stock < item.quantity) {
       throw new Error(
         `Stock insuficiente para "${variant.product.name}" (Talla ${variant.size}). ` +
@@ -90,6 +76,7 @@ async function verifyAndPriceItems(items: CartItemInput[]): Promise<VerifiedItem
       color: variant.color ?? null,
       image: images?.[0] ?? null,
       slug: variant.product.slug,
+      isPreOrder: variant.product.isPreOrder,
     });
   }
 
@@ -100,7 +87,6 @@ async function verifyAndPriceItems(items: CartItemInput[]): Promise<VerifiedItem
 
 export async function createOrder(formData: FormData) {
   try {
-    // 1. Parse client inputs (used for address/contact only — NOT for pricing)
     const itemsStr = formData.get("items") as string;
     const rawItems: CartItemInput[] = JSON.parse(itemsStr);
     const name = (formData.get("name") as string).trim();
@@ -114,52 +100,41 @@ export async function createOrder(formData: FormData) {
     const paymentMethod = formData.get("paymentMethod") as "mercadopago" | "transfer";
     const couponCodeRaw = (formData.get("couponCode") as string | null)?.trim().toUpperCase() || null;
 
-    // Basic input validation
-    if (!name || !email || !phone || !region || !city || !address) {
-      throw new Error("Faltan campos obligatorios de contacto o envío");
-    }
-    if (!["mercadopago", "transfer"].includes(paymentMethod)) {
-      throw new Error("Método de pago inválido");
-    }
-    if (!rawItems || rawItems.length === 0) {
-      throw new Error("El carrito está vacío");
-    }
+    if (!name || !email || !phone || !region || !city || !address) throw new Error("Faltan campos obligatorios de contacto o envío");
+    if (!["mercadopago", "transfer"].includes(paymentMethod)) throw new Error("Método de pago inválido");
+    if (!rawItems || rawItems.length === 0) throw new Error("El carrito está vacío");
 
-    // 2. Verify items against DB — prices and stock are authoritative from here
     const verifiedItems = await verifyAndPriceItems(rawItems);
 
-    // 3. Calculate totals server-side (ignore client-sent subtotal/shippingCost/total)
+    // Detect if any item is a pre-order
+    const orderIsPreOrder = verifiedItems.some((i) => i.isPreOrder);
+
     const serverSubtotal = verifiedItems.reduce((acc, i) => acc + i.lineTotal, 0);
 
-    // 3a. Validate coupon server-side if provided
+    // Coupon
     let discountAmount = 0;
     let appliedCouponCode: string | null = null;
     if (couponCodeRaw) {
-      const coupon = await db.query.coupons.findFirst({
-        where: eq(coupons.code, couponCodeRaw),
-      });
-      if (!coupon) {
-        throw new Error(`El cupón "${couponCodeRaw}" no existe.`);
-      }
-      if (!coupon.isActive) {
-        throw new Error(`El cupón "${couponCodeRaw}" ya no está activo.`);
-      }
-      // Apply percentage discount over subtotal (rounded to integer CLP)
+      const coupon = await db.query.coupons.findFirst({ where: eq(coupons.code, couponCodeRaw) });
+      if (!coupon) throw new Error(`El cupón "${couponCodeRaw}" no existe.`);
+      if (!coupon.isActive) throw new Error(`El cupón "${couponCodeRaw}" ya no está activo.`);
       discountAmount = Math.round(serverSubtotal * (coupon.discountPercentage / 100));
       appliedCouponCode = coupon.code;
     }
 
-    // Shipping cost: read from store_settings config
     const serverShippingCost = await getShippingCost(serverSubtotal);
     const serverTotal = Math.max(0, serverSubtotal - discountAmount) + serverShippingCost;
 
-    // 4. Handle receipt upload (transfer only)
+    // Pre-order: the initial payment is 50% of the total (abono).
+    // Full orders pay 100%.
+    const depositAmount = orderIsPreOrder ? Math.ceil(serverTotal * 0.5) : serverTotal;
+    const initialAmountPaid = 0; // set after payment confirmation, not at order creation
+
+    // Receipt upload (transfer only — for the deposit)
     let receiptUrl: string | null = null;
     if (paymentMethod === "transfer") {
       const receiptFile = formData.get("receiptImage") as File | null;
-      if (!receiptFile || receiptFile.size === 0) {
-        throw new Error("Debes adjuntar el comprobante de transferencia");
-      }
+      if (!receiptFile || receiptFile.size === 0) throw new Error("Debes adjuntar el comprobante de transferencia");
       const buffer = Buffer.from(await receiptFile.arrayBuffer());
       const webpBuffer = await sharp(buffer)
         .resize(1200, 1600, { fit: "inside", withoutEnlargement: true })
@@ -169,9 +144,10 @@ export async function createOrder(formData: FormData) {
       receiptUrl = await uploadToR2(webpBuffer, filename);
     }
 
-    // 5. Insert order (status pending for transfer, processing for MP until webhook confirms)
+    // Insert order
     const [newOrder] = await db.insert(orders).values({
       guestEmail: email,
+      customerName: name,
       status: paymentMethod === "transfer" ? "pending" : "processing",
       paymentMethod,
       subtotal: serverSubtotal.toString(),
@@ -179,12 +155,14 @@ export async function createOrder(formData: FormData) {
       discountAmount: discountAmount.toString(),
       couponCode: appliedCouponCode,
       total: serverTotal.toString(),
+      isPreOrder: orderIsPreOrder,
+      amountPaid: "0",
       shippingAddress: { name, phone, rut, region, city, address },
       notes,
       receiptUrl,
     }).returning();
 
-    // 6. Insert order items and decrement stock
+    // Insert items and decrement stock
     for (const item of verifiedItems) {
       await db.insert(orderItems).values({
         orderId: newOrder.id,
@@ -200,43 +178,42 @@ export async function createOrder(formData: FormData) {
           image: item.image,
           slug: item.slug,
           price: item.unitPrice,
+          isPreOrder: item.isPreOrder,
         },
       });
 
-      // Decrement stock (already validated — no race condition guard needed for MVP)
       const currentVariant = await db.query.productVariants.findFirst({
         where: eq(productVariants.id, item.variantId),
         with: { product: true },
       });
-
       if (currentVariant) {
         const newStock = Math.max(0, currentVariant.stock - item.quantity);
-        await db.update(productVariants)
-          .set({ stock: newStock })
-          .where(eq(productVariants.id, item.variantId));
-
+        await db.update(productVariants).set({ stock: newStock }).where(eq(productVariants.id, item.variantId));
         if (newStock === 0) {
-          const alertMsg =
+          await sendTelegramNotification(
             `⚠️ <b>STOCK AGOTADO</b>\n\n` +
             `Producto: <b>${currentVariant.product.name}</b> · Talla ${currentVariant.size}\n` +
-            `Agotado por la orden <code>${newOrder.id.split("-")[0]}</code>`;
-          await sendTelegramNotification(alertMsg);
+            `Agotado por la orden <code>${newOrder.id.split("-")[0]}</code>`
+          );
         }
       }
     }
 
-    // 7. Notify Telegram
-    const discountLine = discountAmount > 0
-      ? `\n<b>Cupón:</b> ${appliedCouponCode} (-$${discountAmount.toLocaleString("es-CL")})`
+    // Telegram notification
+    const discountLine = discountAmount > 0 ? `\n<b>Cupón:</b> ${appliedCouponCode} (-$${discountAmount.toLocaleString("es-CL")})` : "";
+    const preOrderLine = orderIsPreOrder
+      ? `\n🔖 <b>PRE-ORDER</b> — Abono inicial: <b>$${depositAmount.toLocaleString("es-CL")}</b> (50%)\nSaldo restante: $${(serverTotal - depositAmount).toLocaleString("es-CL")}`
       : "";
+
     const telegramMsg =
       `🚨 <b>NUEVA ORDEN RECIBIDA</b>\n\n` +
+      `<b>👤 Cliente:</b> ${name}\n` +
+      `<b>📧 Email:</b> ${email}\n` +
       `<b>ID:</b> <code>${newOrder.id}</code>\n` +
-      `<b>Cliente:</b> ${name}\n` +
       `<b>Subtotal:</b> $${serverSubtotal.toLocaleString("es-CL")}${discountLine}\n` +
-      `<b>Total:</b> $${serverTotal.toLocaleString("es-CL")}\n` +
-      `<b>Método:</b> ${paymentMethod === "transfer" ? "Transferencia" : "MercadoPago"}\n` +
-      `<b>Email:</b> ${email}`;
+      `<b>Total:</b> $${serverTotal.toLocaleString("es-CL")}` +
+      preOrderLine +
+      `\n<b>Método:</b> ${paymentMethod === "transfer" ? "Transferencia" : "MercadoPago"}`;
 
     const inlineKeyboard: Array<Array<{ text: string; callback_data: string }>> = [];
     if (paymentMethod === "transfer") {
@@ -248,11 +225,13 @@ export async function createOrder(formData: FormData) {
 
     await sendTelegramNotification(telegramMsg, receiptUrl ?? undefined, inlineKeyboard);
 
-    // 8. Send confirmation email for transfer orders
+    // Confirmation email (transfer orders)
     if (paymentMethod === "transfer") {
       await sendEmail({
         to: email,
-        subject: "Recibimos tu orden — ANTA Indumentaria",
+        subject: orderIsPreOrder
+          ? `Pre-order recibida — ANTA Indumentaria`
+          : `Recibimos tu orden — ANTA Indumentaria`,
         html: emailOrdenRecibida({
           name,
           orderId: newOrder.id,
@@ -260,6 +239,8 @@ export async function createOrder(formData: FormData) {
           subtotal: serverSubtotal,
           discountAmount,
           couponCode: appliedCouponCode,
+          isPreOrder: orderIsPreOrder,
+          depositAmount,
           items: verifiedItems.map((i) => ({
             name: i.productName,
             size: i.size,
@@ -270,58 +251,36 @@ export async function createOrder(formData: FormData) {
       });
     }
 
-    // 9. Create MercadoPago preference for online payment
+    // MercadoPago: charge only the deposit for pre-orders, full amount otherwise
     if (paymentMethod === "mercadopago") {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://antaindumentaria.cl";
       const client = getMercadoPagoClient();
       const preference = new Preference(client);
 
-      // Build items array — MP requires unit_price in the currency of the account (CLP)
       const mpItems = verifiedItems.map((item) => ({
         id: item.variantId,
-        title: `${item.productName} (Talla ${item.size})`,
+        title: `${item.productName} (Talla ${item.size})${item.isPreOrder ? " [PRE-ORDER 50%]" : ""}`,
         description: item.color ? `Color: ${item.color}` : undefined,
         picture_url: item.image ?? undefined,
         quantity: item.quantity,
         currency_id: "CLP",
-        unit_price: item.unitPrice,
+        // For pre-orders, charge 50% per item
+        unit_price: item.isPreOrder ? Math.ceil(item.unitPrice * 0.5) : item.unitPrice,
       }));
 
-      // Add shipping as a separate item if > 0 (MP doesn't have a native shipping field in Checkout Pro)
-      if (serverShippingCost > 0) {
-        mpItems.push({
-          id: "shipping",
-          title: "Costo de Envío",
-          description: undefined,
-          picture_url: undefined,
-          quantity: 1,
-          currency_id: "CLP",
-          unit_price: serverShippingCost,
-        });
+      if (serverShippingCost > 0 && !orderIsPreOrder) {
+        mpItems.push({ id: "shipping", title: "Costo de Envío", description: undefined, picture_url: undefined, quantity: 1, currency_id: "CLP", unit_price: serverShippingCost });
       }
-
-      // Add discount as a negative item if coupon applied
-      // MP Checkout Pro supports negative unit_price for discounts
       if (discountAmount > 0 && appliedCouponCode) {
-        mpItems.push({
-          id: `coupon-${appliedCouponCode}`,
-          title: `Descuento cupón ${appliedCouponCode}`,
-          description: undefined,
-          picture_url: undefined,
-          quantity: 1,
-          currency_id: "CLP",
-          unit_price: -discountAmount,
-        });
+        const adjustedDiscount = orderIsPreOrder ? Math.ceil(discountAmount * 0.5) : discountAmount;
+        mpItems.push({ id: `coupon-${appliedCouponCode}`, title: `Descuento ${appliedCouponCode}`, description: undefined, picture_url: undefined, quantity: 1, currency_id: "CLP", unit_price: -adjustedDiscount });
       }
 
       const preferenceData = await preference.create({
         body: {
           external_reference: newOrder.id,
           items: mpItems,
-          payer: {
-            name,
-            email,
-          },
+          payer: { name, email },
           back_urls: {
             success: `${baseUrl}/order-confirmation/${newOrder.id}?status=success`,
             failure: `${baseUrl}/order-confirmation/${newOrder.id}?status=failure`,
@@ -333,25 +292,15 @@ export async function createOrder(formData: FormData) {
         },
       });
 
-      // Persist the MP preference id on the order
-      await db.update(orders)
-        .set({ paymentId: preferenceData.id ?? null })
-        .where(eq(orders.id, newOrder.id));
+      await db.update(orders).set({ paymentId: preferenceData.id ?? null }).where(eq(orders.id, newOrder.id));
 
-      return {
-        success: true,
-        orderId: newOrder.id,
-        mpInitPoint: preferenceData.init_point ?? null,
-      };
+      return { success: true, orderId: newOrder.id, mpInitPoint: preferenceData.init_point ?? null, isPreOrder: orderIsPreOrder, depositAmount };
     }
 
-    return { success: true, orderId: newOrder.id, mpInitPoint: null };
+    return { success: true, orderId: newOrder.id, mpInitPoint: null, isPreOrder: orderIsPreOrder, depositAmount };
   } catch (error) {
     console.error("CREATE ORDER ERROR:", error);
-    // Re-throw with a user-friendly message for known validation errors
-    if (error instanceof Error) {
-      throw error;
-    }
+    if (error instanceof Error) throw error;
     throw new Error("Error al procesar la orden. Intenta de nuevo.");
   }
 }
@@ -365,35 +314,20 @@ export async function updateOrderStatus(
 ) {
   try {
     await db.update(orders)
-      .set({
-        status,
-        trackingUrl: trackingUrl ?? null,
-        updatedAt: new Date(),
-      })
+      .set({ status, trackingUrl: trackingUrl ?? null, updatedAt: new Date() })
       .where(eq(orders.id, orderId));
 
-    // Notify Telegram when shipped
     if (status === "shipped") {
       const trackingLine = trackingUrl ? `\n<b>Tracking:</b> ${trackingUrl}` : "";
-      const msg =
-        `📦 <b>ORDEN DESPACHADA</b>\n\n` +
-        `Orden <code>${orderId.split("-")[0]}</code> marcada como enviada.${trackingLine}`;
-      await sendTelegramNotification(msg);
-    }
+      await sendTelegramNotification(`📦 <b>ORDEN DESPACHADA</b>\n\nOrden <code>${orderId.split("-")[0]}</code> marcada como enviada.${trackingLine}`);
 
-    // Send email to customer when shipped
-    if (status === "shipped") {
       const order = await db.query.orders.findFirst({ where: eq(orders.id, orderId) });
       if (order?.guestEmail) {
         const addr = order.shippingAddress as { name?: string };
         await sendEmail({
           to: order.guestEmail,
           subject: "¡Tu pedido está en camino! — ANTA Indumentaria",
-          html: emailPedidoEnviado({
-            name: addr?.name ?? "Cliente",
-            orderId,
-            trackingUrl: trackingUrl ?? null,
-          }),
+          html: emailPedidoEnviado({ name: addr?.name ?? "Cliente", orderId, trackingUrl: trackingUrl ?? null }),
         });
       }
     }

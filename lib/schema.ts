@@ -102,6 +102,8 @@ export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: text('userId').references(() => users.id, { onDelete: 'set null' }),
   guestEmail: text('guest_email'),
+  // customerName: desnormalizado desde shippingAddress para búsqueda rápida por nombre
+  customerName: text('customer_name'),
   status: orderStatusEnum('status').default('pending').notNull(),
   paymentMethod: paymentMethodEnum('payment_method').notNull(),
   paymentId: text('payment_id'),
@@ -110,6 +112,13 @@ export const orders = pgTable('orders', {
   discountAmount: numeric('discount_amount', { precision: 10, scale: 2 }).default('0').notNull(),
   couponCode: text('coupon_code'),
   total: numeric('total', { precision: 10, scale: 2 }).notNull(),
+  // Pre-order fields
+  isPreOrder: boolean('is_pre_order').default(false).notNull(),
+  // amountPaid: monto abonado acumulado. Cuando amountPaid >= total, la orden está pagada en su totalidad
+  amountPaid: numeric('amount_paid', { precision: 10, scale: 2 }).default('0').notNull(),
+  // Boleta
+  boletaUrl: text('boleta_url'),
+  boletaSentAt: timestamp('boleta_sent_at'),
   shippingAddress: jsonb('shipping_address').notNull(),
   notes: text('notes'),
   receiptUrl: text('receipt_url'),
