@@ -205,25 +205,42 @@ export async function createOrder(formData: FormData) {
       ? `\n🔖 <b>PRE-ORDER</b> — Abono inicial: <b>$${depositAmount.toLocaleString("es-CL")}</b> (50%)\nSaldo restante: $${(serverTotal - depositAmount).toLocaleString("es-CL")}`
       : "";
 
-    const telegramMsg =
-      `🚨 <b>NUEVA ORDEN RECIBIDA</b>\n\n` +
-      `<b>👤 Cliente:</b> ${name}\n` +
-      `<b>📧 Email:</b> ${email}\n` +
-      `<b>ID:</b> <code>${newOrder.id}</code>\n` +
-      `<b>Subtotal:</b> $${serverSubtotal.toLocaleString("es-CL")}${discountLine}\n` +
-      `<b>Total:</b> $${serverTotal.toLocaleString("es-CL")}` +
-      preOrderLine +
-      `\n<b>Método:</b> ${paymentMethod === "transfer" ? "Transferencia" : "MercadoPago"}`;
-
-    const inlineKeyboard: Array<Array<{ text: string; callback_data: string }>> = [];
+    // Different notification based on payment method
     if (paymentMethod === "transfer") {
-      inlineKeyboard.push([
-        { text: "✅ Aprobar Pago", callback_data: `approve_order_${newOrder.id}` },
-        { text: "❌ Rechazar", callback_data: `reject_order_${newOrder.id}` },
-      ]);
-    }
+      // Transfer: needs manual approval → send buttons
+      const telegramMsg =
+        `🚨 <b>NUEVA ORDEN — TRANSFERENCIA</b>\n\n` +
+        `<b>👤 Cliente:</b> ${name}\n` +
+        `<b>📧 Email:</b> ${email}\n` +
+        `<b>ID:</b> <code>${newOrder.id.split("-")[0]}</code>\n` +
+        `<b>Subtotal:</b> $${serverSubtotal.toLocaleString("es-CL")}${discountLine}\n` +
+        `<b>Total:</b> $${serverTotal.toLocaleString("es-CL")}` +
+        preOrderLine +
+        `\n\n⏳ <b>Esperando aprobación manual del comprobante</b>`;
 
-    await sendTelegramNotification(telegramMsg, receiptUrl ?? undefined, inlineKeyboard);
+      const inlineKeyboard = [
+        [
+          { text: "✅ Aprobar Pago", callback_data: `approve_order_${newOrder.id}` },
+          { text: "❌ Rechazar", callback_data: `reject_order_${newOrder.id}` },
+        ],
+      ];
+
+      await sendTelegramNotification(telegramMsg, receiptUrl ?? undefined, inlineKeyboard);
+    } else {
+      // MercadoPago: automatic — NO buttons, just FYI
+      const telegramMsg =
+        `💳 <b>NUEVA ORDEN — MERCADOPAGO</b>\n\n` +
+        `<b>👤 Cliente:</b> ${name}\n` +
+        `<b>📧 Email:</b> ${email}\n` +
+        `<b>ID:</b> <code>${newOrder.id.split("-")[0]}</code>\n` +
+        `<b>Subtotal:</b> $${serverSubtotal.toLocaleString("es-CL")}${discountLine}\n` +
+        `<b>Total:</b> $${serverTotal.toLocaleString("es-CL")}` +
+        preOrderLine +
+        `\n\n⏳ <b>Esperando confirmación de MercadoPago...</b>\n` +
+        `<i>El webhook notificará cuando se complete el pago.</i>`;
+
+      await sendTelegramNotification(telegramMsg);
+    }
 
     // Confirmation email (transfer orders)
     if (paymentMethod === "transfer") {

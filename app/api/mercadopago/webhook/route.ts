@@ -151,10 +151,12 @@ export async function POST(req: NextRequest) {
           html: emailPagoAprobado({
             name: clientName,
             orderId,
-            total: Number(order.total),
+            total: orderTotal,
           }),
         });
       }
+
+      return NextResponse.json({ received: true });
     }
 
     // ── REJECTED / CANCELLED ─────────────────────────────────────────────────

@@ -19,20 +19,23 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pr
   const order = await db.query.orders.findFirst({ where: eq(orders.id, id) }).catch(() => null);
 
   // Determine display state:
-  // 1. If MP returned ?status=failure → payment failed
-  // 2. If order.status is "paid" → approved (MP webhook already ran, or manual approval)
-  // 3. If ?status=pending or order.status is "processing" → MP pending
-  // 4. Otherwise → transfer pending
+  // 1. MP failure → payment failed
+  // 2. order.status === "paid" → payment approved (webhook confirmed)
+  // 3. order.paymentMethod === "mercadopago" → waiting for MP webhook
+  // 4. order.status === "pending" → transfer pending manual approval
   type DisplayState = 'approved' | 'pending_mp' | 'transfer_pending' | 'failed';
 
   let displayState: DisplayState;
   if (status === 'failure') {
     displayState = 'failed';
-  } else if (order?.status === 'paid' || status === 'success') {
+  } else if (order?.status === 'paid') {
+    // Webhook already confirmed payment
     displayState = 'approved';
-  } else if (status === 'pending' || order?.paymentMethod === 'mercadopago') {
+  } else if (order?.paymentMethod === 'mercadopago') {
+    // MercadoPago order waiting for webhook
     displayState = 'pending_mp';
   } else {
+    // Transfer order waiting for manual approval
     displayState = 'transfer_pending';
   }
 
