@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     // Optional signature validation when MERCADOPAGO_WEBHOOK_SECRET is set.
     // MP signs notifications with x-signature header using HMAC-SHA256.
     const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    if (webhookSecret) {
+    if (webhookSecret && webhookSecret !== "your_webhook_secret") {
       const xSignature = req.headers.get("x-signature");
       const xRequestId = req.headers.get("x-request-id");
       const dataId = body.data?.id ? String(body.data.id) : "";
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     // MP sends different notification types; we only care about "payment"
     if (body.type !== "payment" || !body.data?.id) {
-      console.log("⚠️ Ignoring non-payment notification:", body.type);
+      console.log("⚠️ Ignoring non-payment notification:", body.type, "| Expecting 'payment' type");
       return NextResponse.json({ received: true });
     }
 
