@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders, orderItems, productVariants, coupons } from "@/lib/schema";
-import { eq, ilike, or } from "drizzle-orm";
+import { eq, ilike, or, sql } from "drizzle-orm";
 import { sendEmail } from "@/lib/resend";
 import {
   emailPagoAprobado,
@@ -70,9 +70,9 @@ async function findOrderByPartialId(partialId: string) {
     return await db.query.orders.findFirst({ where: eq(orders.id, safe) });
   }
 
-  // Prefix match — uses DB-side LIKE which is index-friendly on UUID text columns
+  // Prefix match — cast UUID to text for ILIKE to work
   const results = await db.query.orders.findMany({
-    where: ilike(orders.id, `${safe}%`),
+    where: sql`CAST(${orders.id} AS TEXT) ILIKE ${safe + '%'}`,
     limit: 1,
   });
   return results[0] ?? null;
