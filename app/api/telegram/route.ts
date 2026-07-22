@@ -318,6 +318,51 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      // ── /aprobar_mp [id] ───────────────────────────────────────────────────
+      // Manually approve a MercadoPago order when webhook fails (only for debugging)
+      if (cmd === "/aprobar_mp") {
+        if (!args[0]) {
+          await tgSend(chatId, "⚠️ Uso: <code>/aprobar_mp [id]</code>\nPara aprobar órdenes MP cuando el webhook no llegó.");
+          return NextResponse.json({ success: true });
+        }
+        const rec = await findOrderByPartialId(args[0]);
+        if (!rec || rec.paymentMethod !== "mercadopago") {
+          await tgSend(chatId, `❌ No encontré orden de MercadoPago con ID <code>${args[0]}</code>`);
+          return NextResponse.json({ success: true });
+        }
+        if (rec.status === "paid") {
+          await tgSend(chatId, `⚠️ Esta orden ya está marcada como pagada.`);
+          return NextResponse.json({ success: true });
+        }
+        const clientName = rec.customerName || (rec.shippingAddress as any)?.name || "Cliente";
+        const orderTotal = Number(rec.total);
+        const depositAmount = rec.isPreOrder ? Math.ceil(orderTotal * 0.5) : orderTotal;
+        
+        await db.update(orders).set({
+          status: rec.isPreOrder ? "processing" : "paid",
+          amountPaid: depositAmount.toString(),
+          updatedAt: new Date(),
+        }).where(eq(orders.id, rec.id));
+
+        const shortId = rec.id.split("-")[0];
+        await tgSend(
+          chatId,
+          `✅ <b>${clientName}</b> — orden MP aprobada manualmente.\n` +
+          (rec.isPreOrder
+            ? `🔖 Pre-order: abono de $${depositAmount.toLocaleString("es-CL")} registrado (50%).\nSaldo: $${(orderTotal - depositAmount).toLocaleString("es-CL")}`
+            : `💰 Pago completo: $${orderTotal.toLocaleString("es-CL")}`) +
+          `\n\n<i>⚠️ Comando de emergencia — normalmente el webhook automático hace esto.</i>`
+        );
+        if (rec.guestEmail) {
+          await sendEmail({
+            to: rec.guestEmail,
+            subject: "✅ Pago Aprobado — ANTA Indumentaria",
+            html: emailPagoAprobado({ name: clientName, orderId: rec.id, total: orderTotal }),
+          });
+        }
+        return NextResponse.json({ success: true });
+      }
+
       // ── /stock ─────────────────────────────────────────────────────────────
       if (cmd === "/stock") {
         const variants = await db.query.productVariants.findMany({ with: { product: true } });
@@ -566,8 +611,9 @@ export async function POST(req: NextRequest) {
           `/buscar [nombre] — Buscar por nombre del cliente\n` +
           `/orden [id] — Ver detalle completo de una orden\n\n` +
           `<b>✅ Gestión de Órdenes</b>\n` +
-          `/aprobar [id] — Aprobar pago (marca como pagado)\n` +
+          `/aprobar [id] — Aprobar pago por transferencia\n` +
           `/cancelar [id] — Cancelar y devolver stock\n` +
+          `/aprobar_mp [id] — ⚠️ Aprobar MP si webhook falló\n` +
           `/enviado [id] [url] — Marcar como enviado\n\n` +
           `<b>🔖 Pre-Orders</b>\n` +
           `/abono [id] [monto] — Registrar abono en efectivo\n\n` +
