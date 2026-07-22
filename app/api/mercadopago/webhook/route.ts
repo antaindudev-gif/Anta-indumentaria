@@ -35,8 +35,11 @@ async function restoreStockForOrder(orderId: string): Promise<void> {
 // ─── Webhook handler ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  console.log("🔔 MP WEBHOOK RECEIVED", new Date().toISOString());
+  
   try {
     const body = await req.json();
+    console.log("📦 Webhook body:", JSON.stringify(body, null, 2));
 
     // Optional signature validation when MERCADOPAGO_WEBHOOK_SECRET is set.
     // MP signs notifications with x-signature header using HMAC-SHA256.
@@ -74,10 +77,12 @@ export async function POST(req: NextRequest) {
 
     // MP sends different notification types; we only care about "payment"
     if (body.type !== "payment" || !body.data?.id) {
+      console.log("⚠️ Ignoring non-payment notification:", body.type);
       return NextResponse.json({ received: true });
     }
 
     const paymentId = String(body.data.id);
+    console.log("💳 Processing payment:", paymentId);
 
     // Fetch the real payment status from MP API (never trust the notification body alone)
     const client = getMercadoPagoClient();
@@ -86,6 +91,8 @@ export async function POST(req: NextRequest) {
 
     const mpStatus = payment.status; // "approved" | "rejected" | "pending" | "cancelled" | ...
     const orderId = payment.external_reference;
+
+    console.log("📊 Payment status:", mpStatus, "| Order:", orderId);
 
     if (!orderId) {
       console.warn("MP webhook: payment without external_reference", paymentId);
